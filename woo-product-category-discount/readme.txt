@@ -3,7 +3,7 @@ Contributors: vidishp, quanticedge
 Tags: product category discount, category discount, discount, sale, bulk discount
 Requires at least: 3.0.1
 Tested up to: 6.6.2
-Stable tag: 4.15
+Stable tag: 4.16
 Donate link: https://ko-fi.com/vidish
 
 Category Discount Woocommerce allows administrator to add and remove discount to products based on Category.
