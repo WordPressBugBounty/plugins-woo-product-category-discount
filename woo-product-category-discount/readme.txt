@@ -1,42 +1,39 @@
-=== Category Discount Woocommerce ===
+=== Simple Discount Rules for Woocommerce ===
 Contributors: vidishp, quanticedge
-Tags: product category discount, category discount, discount, sale, bulk discount
+Tags: discount rules, category discount, discount, woocommerce discount, bulk discount
 Requires at least: 3.0.1
-Tested up to: 6.6.2
-Stable tag: 4.16
+Tested up to: 6.8
+Stable tag: trunk
 Donate link: https://ko-fi.com/vidish
+License: GPLv2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Category Discount Woocommerce allows administrator to add and remove discount to products based on Category.
+Simple Discount Rules for Woocommerce allows administrator to add and remove discount to products based on Category.
 
 == Description ==
 
-"Category Discount Woocommerce" enables administrator to apply discount on products based on Woocommerce product categories with just few clicks!! You don't need to create separate categories for discount. Just one click & discount is applied. (Even to thousands of products)..!! 
+"Simple Discount Rules for Woocommerce" enables administrator to apply discount on wide range of rules. Just few clicks & discount is applied. (Even to thousands of products)..!! 
 
 <strong>Key features:</strong>
 <ul>
-<li>Apply discount to products, based on your existing categories. No need to create separate categories for discount</li>
-<li>Apply / Remove discount to products with a single click, even to thousands of products.</li>
+<li>Storewide promotion ( <a href="https://youtu.be/fe2oEbjYUng" target="_blank">Check demo </a> )</li>
+<li>Apply discounts based on Categories, tags, and more. ( <a href="https://youtu.be/NAR8CfyyVCg" target="_blank">Check demo </a> )</li>
+<li>Cart based discounts ( <a href="https://youtu.be/9G1ntT5CWso" target="_blank">Check demo </a> )</li>
+<li>Quantity based discounts ( <a href="https://youtu.be/Jw_fkIaJE4w" target="_blank">Check demo </a> )</li>
+<li>Free gift for promotions</li>
 </ul>
 
 Don't believe it? Try it out here, its free..!!
 
-<strong>PRO version features:</strong>
-<ul>
-<li><strong>Apply discount by Product categories, product attributes, product tags & product brand</strong></li>
-<li><strong>Schedule hourly discount for future dates</strong></li>
-<li><strong>Exclude specific products from Category, Brand or Attribute discounts</strong></li>
-<li><strong>Choose if you want to apply maximum/minimum discount, when product has multiple attributes/categories etc.</strong></li>
-</ul>
-<strong>Buy PRO version here: <a href="https://www.wooextend.com/product/woo-product-category-discount-pro/" target="_blank">WooExtend</a></strong> (With 1000+ Happy Users) 
+Need more details on features? <a href="https://www.wooextend.com/how-to-apply-category-discount-for-woocommerce/">Review here</a>
+
+<strong>Need a custom feature? Ask us here<a href="https://www.wooextend.com/woocommerce-expert/" target="_blank">WooExtend</a></strong>
 
 Thank you for <a href="https://www.facebook.com/wooextend/reviews">LOVING this plugin..!!</a>
 
-Demo of PRO version
-<iframe width="520" height="320" src="https://www.youtube.com/embed/UyziQXBUEYA" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-
 <strong>More plugins by WooExtend:</strong>
 <ul>
-<li><strong><a href="https://wordpress.org/plugins/bulk-order-woocommerce/">Bulk Order for Woocommerce</a></strong></li>
+<li><strong><a href="https://wordpress.org/plugins/woo-bulk-order/">Bulk Order for Woocommerce</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/woo-combo-offers/">Woocommerce Combo Offers</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/first-order-discount-woocommerce/">First Order Discount</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/woo-custom-fee/">Custom Fee</a></strong></li>
@@ -50,31 +47,21 @@ Demo of PRO version
 
 == Frequently Asked Questions ==
 
-= How Do I save prices? There is no Save button? = 
+= What does the status column mean? = 
 
-You can update any selection and discounts will be updated automatically in the system.
+If the discount applied has status "inactive", then it will not be active discount.
 
-= Does this plugin allow me to apply discount on my sub categories as well? =
+= How can I add multiple conditions? =
 
-Yes. You can apply discount upto 2 levels of sub category. The discount will be applied to immediate products within that category and not its sub category.
-
-= Can I apply "% of price" type of discount on categories? =
-
-Yes. For applying discounts in '% of price', you will need to purchase our pro version.
-
-= What will happen to my existing prices / discount data if I apply category discount from this plugin? =
-
-Your product's selling price will have additional discount added to it when you use this plugin. If you make category discount '0', then it will make your product's selling price to original price of the product.
-
-= Can I apply more than one category to one product and then apply discount? =
-
-Yes. Maximum discount of the categories will be applied. 
+You can add multiple conditions by clicking on "Add Condition" button. Also you can specify whether you want "All" conditions to be met or "ANY".
 
 == Screenshots ==
 
-1. Admin interface where product categories are displayed to apply discount. Administrator adds amount of discount and its updating.
-2. Front end where user can see different amount of discount applied to different categories.
-3. When discount is applied, the wait icon turn into success notification icon.
+1. Admin interface where you can locate the plugin in menu.
+2. Step 1 to add new discount.
+3. Step 2 to add new discount.
+4. Final step to add new discount.
+5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
 
@@ -161,5 +148,8 @@ Yes. Maximum discount of the categories will be applied.
 
 = 4.14 =
 * Allowed shop manager access to discount page
+
+= 5.0 =
+* Major release with advanced features
 
 == Upgrade Notice ==
