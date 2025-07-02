@@ -152,4 +152,7 @@ You can add multiple conditions by clicking on "Add Condition" button. Also you 
 = 5.0 =
 * Major release with advanced features
 
+= 5.1 =
+* Updated menu name
+
 == Upgrade Notice ==

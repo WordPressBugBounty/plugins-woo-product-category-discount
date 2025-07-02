@@ -183,8 +183,8 @@ class WPCD_Category_Discount_Admin {
 	 */
 	public function admin_menu() {
 		add_menu_page(
-			__( 'Category Discount', 'wpcd-category-discount' ),
-			__( 'Category Discount', 'wpcd-category-discount' ),
+			__( 'Simple Discount Rules', 'wpcd-category-discount' ),
+			__( 'Simple Discount Rules', 'wpcd-category-discount' ),
 			'manage_options',
 			self::$menu_slug,
 			array( $this, 'render_category_discount' ),
