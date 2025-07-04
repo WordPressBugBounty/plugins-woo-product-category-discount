@@ -155,4 +155,7 @@ You can add multiple conditions by clicking on "Add Condition" button. Also you 
 = 5.1 =
 * Updated menu name
 
+= 5.2 =
+* Fix for file name
+
 == Upgrade Notice ==
