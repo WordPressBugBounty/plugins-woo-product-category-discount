@@ -100,6 +100,7 @@ class WPCD_Category_Discount_Activator {
 		dbDelta($sql3);
 		dbDelta($sql4);
 
+		update_option('wpcd_tables_created', 'yes');
 	}
 
 }

@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Discount Rules for Woocommerce
  * Plugin URI:        https://www.quanticedgesolutions.com
  * Description:       Easily create advanced discount rules for your WooCommerce store! Set up discounts based on categories, tags, cart value, or product quantity—with full scheduling, smart product matching, and smooth processing that works great even on large stores. Discounts apply in real time, with progress updates shown to the user.
- * Version:           5.2
+ * Version:           5.3
  * Author:            QuanticEdge
  * Author URI:        https://www.quanticedgesolutions.com/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 1.0.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.2' );
+define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.3' );
 
 /**
  * The code that runs during plugin activation.
@@ -67,3 +67,41 @@ function run_wpcd_category_discount() {
 
 }
 run_wpcd_category_discount();
+
+/**
+ * Retrieves related term IDs for the given terms within a specified taxonomy.
+ *
+ * This function checks if WPML is active and, if so, fetches translations for
+ * the provided terms using the 'wpml_get_element_translations' filter. It then
+ * returns the original terms along with their related term IDs.
+ *
+ * @param array|int $terms    A single term ID or an array of term IDs.
+ * @param string    $type     The type of terms (e.g., 'taxonomy' or 'post').
+ * @param string    $post_type The post type or taxonomy to which the terms belong.
+ *
+ * @return array The array of original and related term IDs.
+ */
+function wpcd_get_related_terms( $terms, $type, $post_type ) {
+	// If WPML is not active, return as-is.
+	if ( ! defined( 'ICL_SITEPRESS_VERSION' ) || ! has_filter( 'wpml_get_element_translations' ) ) {
+		return $terms;
+	}
+
+	$related_term_ids = [];
+
+	if( !is_array( $terms ) && is_integer( $terms ) ){
+		$terms = [ $terms ];
+	}
+
+	foreach ( $terms as $term_id ) {
+		$trid = apply_filters( 'wpml_element_trid', null, $term_id, $type == 'taxonomy' ? 'tax_' . $post_type : 'post_' . $post_type);
+		$translations = apply_filters( 'wpml_get_element_translations', null, $trid, $type == 'taxonomy' ? 'tax_' . $post_type : 'post_' . $post_type );
+		foreach ( $translations as $translation ) {
+			$related_term_ids[] = $type == 'taxonomy' ? $translation->term_id : $translation->ID;
+		}
+	}
+
+	$related_term_ids = array_values( array_unique( $related_term_ids ) );
+
+	return array_unique( array_merge( $terms, $related_term_ids ) );
+}

@@ -14,6 +14,10 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+if( !defined( 'WPCD_REMOVE_TABLES') ){
+	exit;
+}
+
 global $wpdb;
 
 // Drop tables

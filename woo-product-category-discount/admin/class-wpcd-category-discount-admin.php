@@ -199,6 +199,10 @@ class WPCD_Category_Discount_Admin {
 	 * @since    1.0.0
 	 */
 	public function render_category_discount() {
+		if( get_option('wpcd_tables_created') != 'yes' ) {
+			activate_wpcd_category_discount();
+		}
+
 		if( isset( $_GET['id'] ) ) {
 			if( isset( $_GET['action'] ) && $_GET['action'] == 'delete' ) {
 				$this->delete_discount_action();
@@ -617,7 +621,7 @@ class WPCD_Category_Discount_Admin {
 
 		$discount_data = $this->get_scheduled_discount_data( $discount_id );
 
-		if( $discount_data['status'] == 1 && ($discount_data['discount_type'] !== 'cart' || $discount_data['discount_type'] !== 'quantity') ){
+		if( $discount_data['status'] == 1 && ($discount_data['discount_type'] !== 'cart' && $discount_data['discount_type'] !== 'quantity') ){
 			$time = empty( $discount_data['start_date'] ) ? time() : strtotime($discount_data['start_date'] . ' 00:00:00');
 			wp_schedule_single_event($time, 'wpcd_apply_discount_setup', [$discount_data]);
 
@@ -735,6 +739,7 @@ class WPCD_Category_Discount_Admin {
 	 * @param array $product_ids The list of product ids to which the discount should be applied.
 	 */
 	public function apply_discount( $discount_id, $discount_amount, $discount_amount_type, $product_ids ){
+		$custom_fields = self::custom_fields();
 		foreach( $product_ids as $product_id ){
 			$product = wc_get_product( $product_id );
 			if( $product->is_type('variable') ){
@@ -747,17 +752,24 @@ class WPCD_Category_Discount_Admin {
 					$variation = wc_get_product( $variation_id );
 					$regular_price = $variation->get_regular_price();
 					$sale_price = $variation->get_sale_price();
-					$price = $variation->get_price();
-					if( empty( $price ) ){
+					$_price = $variation->get_price();
+					if( empty( $_price ) ){
 						continue;
 					}
+					$price = $regular_price;
 					$new_price = $discount_amount_type == 'percentage' ? ($price - ($price * $discount_amount / 100)) : ($price - $discount_amount);
 					$variation->set_sale_price( $new_price );
 					$variation->save();
 					update_post_meta( $variation_id, '_wpcd_discount_id', $discount_id );
 					update_post_meta( $variation_id, '_wpcd_original_regular_price', $regular_price );
 					update_post_meta( $variation_id, '_wpcd_original_sale_price', $sale_price );
-					update_post_meta( $variation_id, '_wpcd_original_price', $price );
+					update_post_meta( $variation_id, '_wpcd_original_price', $_price );
+
+					if ( defined( 'ICL_SITEPRESS_VERSION' ) && has_filter( 'wpml_sync_custom_field' ) ) {
+						foreach( $custom_fields as $field ){
+							do_action('wpml_sync_custom_field', $variation_id, $field);
+						}
+					}
 				}
 			} else {
 				$discount_applied = get_post_meta( $product_id, '_wpcd_discount_id', true );
@@ -766,17 +778,24 @@ class WPCD_Category_Discount_Admin {
 				}
 				$regular_price = $product->get_regular_price();
 				$sale_price = $product->get_sale_price();
-				$price = $product->get_price();
-				if( empty( $price ) ){
+				$_price = $product->get_price();
+				if( empty( $_price ) ){
 					continue;
 				}
+				$price = $regular_price;
 				$new_price = $discount_amount_type == 'percentage' ? ($price - ($price * $discount_amount / 100)) : ($price - $discount_amount);
 				$product->set_sale_price( $new_price );
 				$product->save();
 				update_post_meta( $product_id, '_wpcd_discount_id', $discount_id );
 				update_post_meta( $product_id, '_wpcd_original_regular_price', $regular_price );
 				update_post_meta( $product_id, '_wpcd_original_sale_price', $sale_price );
-				update_post_meta( $product_id, '_wpcd_original_price', $price );
+				update_post_meta( $product_id, '_wpcd_original_price', $_price );
+
+				if ( defined( 'ICL_SITEPRESS_VERSION' ) && has_filter( 'wpml_sync_custom_field' ) ) {
+					foreach( $custom_fields as $field ){
+						do_action('wpml_sync_custom_field', $product_id, $field);
+					}
+				}
 			}
 		}
 		$this->wpdb->query( $this->wpdb->prepare( "UPDATE {$this->wpdb->prefix}wpcd_discounts SET processed_chunks = processed_chunks + 1 WHERE id = %d", $discount_id ) );
@@ -812,6 +831,7 @@ class WPCD_Category_Discount_Admin {
 	 * @param array $product_ids The list of product ids from which the discount should be removed.
 	 */
 	public function remove_discount( $discount_id, $product_ids ) {
+		$custom_fields = self::custom_fields();
 		foreach ( $product_ids as $product_id ) {
 			$product = wc_get_product( $product_id );
 			if ( ! $product ) continue;
@@ -831,13 +851,21 @@ class WPCD_Category_Discount_Admin {
 					$sale_price    = get_post_meta( $variation_id, '_wpcd_original_sale_price', true );
 
 					$variation->set_regular_price( $regular_price );
-					$variation->set_sale_price( $sale_price );
+					if( !empty( $sale_price ) )	{
+						$variation->set_sale_price( $sale_price );
+					}
 					$variation->save();
 
 					delete_post_meta( $variation_id, '_wpcd_discount_id' );
 					delete_post_meta( $variation_id, '_wpcd_original_regular_price' );
 					delete_post_meta( $variation_id, '_wpcd_original_sale_price' );
 					delete_post_meta( $variation_id, '_wpcd_original_price' );
+
+					if ( defined( 'ICL_SITEPRESS_VERSION' ) && has_filter( 'wpml_sync_custom_field' ) ) {
+						foreach( $custom_fields as $field ){
+							do_action('wpml_sync_custom_field', $variation_id, $field);
+						}
+					}
 
 					wc_delete_product_transients( $variation_id );
 				}
@@ -851,13 +879,21 @@ class WPCD_Category_Discount_Admin {
 				$sale_price    = get_post_meta( $product_id, '_wpcd_original_sale_price', true );
 
 				$product->set_regular_price( $regular_price );
-				$product->set_sale_price( $sale_price );
+				if( !empty( $sale_price ) ){
+					$product->set_sale_price( $sale_price );
+				}
 				$product->save();
 
 				delete_post_meta( $product_id, '_wpcd_discount_id' );
 				delete_post_meta( $product_id, '_wpcd_original_regular_price' );
 				delete_post_meta( $product_id, '_wpcd_original_sale_price' );
 				delete_post_meta( $product_id, '_wpcd_original_price' );
+
+				if ( defined( 'ICL_SITEPRESS_VERSION' ) && has_filter( 'wpml_sync_custom_field' ) ) {
+					foreach( $custom_fields as $field ){
+						do_action('wpml_sync_custom_field', $product_id, $field);
+					}
+				}
 
 				wc_delete_product_transients( $product_id );
 			}
@@ -995,6 +1031,33 @@ class WPCD_Category_Discount_Admin {
 	}
 
 	/**
+	 * Hides the WPML menu on the plugin's settings page.
+	 *
+	 * We do this to prevent the user from switching languages while on the plugin's settings page, which can cause problems with the plugin's functionality.
+	 */
+	public function hide_wpml_menu(){
+		$screen = get_current_screen();
+		if( $screen && $screen->id === 'toplevel_page_wpcd-category-discount' ){
+			echo '<style>#wp-admin-bar-WPML_ALS { display: none !important; }</style>';
+		}
+	}
+
+	/**
+	 * Force the default language for the plugin's settings page.
+	 *
+	 * We do this to ensure that the plugin's settings page is always displayed
+	 * in the default language, even if the user switches languages.
+	 *
+	 * @param object $screen The WP_Screen object for the current page.
+	 */
+	public function force_wpml_language( $screen ){
+		if( $screen->id === 'toplevel_page_wpcd-category-discount' ){
+			$default_lang = apply_filters( 'wpml_default_language', null );
+        	do_action( 'wpml_switch_language', $default_lang );
+		}
+	}
+
+	/**
 	 * Schedule or unschedule discount events based on the discount's status and dates.
 	 *
 	 * This function checks the status of a discount and its start and end dates
@@ -1088,5 +1151,22 @@ class WPCD_Category_Discount_Admin {
 			case 3: return 'not_in';
 			default: return 'in';
 		}
+	}
+
+	/**
+	 * The custom fields used to save the original prices of a product.
+	 *
+	 * @return array The custom fields.
+	 */
+	private static function custom_fields(){
+		return [
+			'_wpcd_discount_id',
+			'_wpcd_original_regular_price',
+			'_wpcd_original_sale_price',
+			'_wpcd_original_price',
+			'_price',
+			'_regular_price',
+			'_sale_price'
+		];
 	}
 }

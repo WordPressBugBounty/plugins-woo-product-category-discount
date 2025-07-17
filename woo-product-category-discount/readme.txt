@@ -55,6 +55,11 @@ If the discount applied has status "inactive", then it will not be active discou
 
 You can add multiple conditions by clicking on "Add Condition" button. Also you can specify whether you want "All" conditions to be met or "ANY".
 
+= How can I remove the database table while uninstalling the plugin? =
+
+Please add the following line in wp-config.php before uninstalling the plugin(if you want to remove the database table):
+define( 'WPCD_REMOVE_TABLES', true );
+
 == Screenshots ==
 
 1. Admin interface where you can locate the plugin in menu.
@@ -157,5 +162,12 @@ You can add multiple conditions by clicking on "Add Condition" button. Also you 
 
 = 5.2 =
 * Fix for file name
+
+= 5.3 =
+* Added check before deleting database tables.
+* Added WPML compatibility
+* Resolved the quantity based discount issue.
+* Added check for plugin table creation if not created while activation.
+* Calculated discount using regular price instead of already discounted price.
 
 == Upgrade Notice ==

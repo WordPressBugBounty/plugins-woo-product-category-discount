@@ -180,6 +180,11 @@ class WPCD_Category_Discount {
 		$this->loader->add_action( 'admin_notices', $plugin_admin, 'admin_notices');
 		$this->loader->add_action( 'admin_init', $legacy_migrate, 'migrate_data');
 		$this->loader->add_action( 'wpcd_discount_legacy_migrate', $legacy_migrate, 'set_migration_keys', 10, 2);
+
+		if ( defined( 'ICL_SITEPRESS_VERSION' ) ){
+			$this->loader->add_action( 'admin_head', $plugin_admin, 'hide_wpml_menu');
+			$this->loader->add_action( 'current_screen', $plugin_admin, 'force_wpml_language', 10, 1);
+		}
 	}
 
 	/**

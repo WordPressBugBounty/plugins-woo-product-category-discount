@@ -530,9 +530,13 @@ class WPCD_Category_Discount_Public {
 
 			$discount_terms = array();
 			foreach( $terms as $term ){
+				$terms = explode(',', $term->terms);
+
+				$terms = wpcd_get_related_terms( $terms, 'taxonomy', $term->taxonomy );
+
 				$discount_terms[] = array(
 					'taxonomy' => $term->taxonomy,
-					'terms' => explode(',', $term->terms),
+					'terms' => $terms,
 					'operator' => $term->operator == 2 ? 'IN' : 'NOT IN',
 				);
 			}
