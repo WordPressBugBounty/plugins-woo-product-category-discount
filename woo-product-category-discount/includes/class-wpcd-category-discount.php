@@ -7,7 +7,7 @@
  * public-facing side of the site and the admin area.
  *
  * @link       https://www.quanticedgesolutions.com
- * @since      1.0.0
+ * @since      5.0
  *
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/includes
@@ -22,7 +22,7 @@
  * Also maintains the unique identifier of this plugin as well as the current
  * version of the plugin.
  *
- * @since      1.0.0
+ * @since      5.0
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/includes
  * @author     QuanticEdge <info@quanticedge.co.in>
@@ -33,7 +33,7 @@ class WPCD_Category_Discount {
 	 * The loader that's responsible for maintaining and registering all hooks that power
 	 * the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   protected
 	 * @var      WPCD_Category_Discount_Loader    $loader    Maintains and registers all hooks for the plugin.
 	 */
@@ -42,7 +42,7 @@ class WPCD_Category_Discount {
 	/**
 	 * The unique identifier of this plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   protected
 	 * @var      string    $plugin_name    The string used to uniquely identify this plugin.
 	 */
@@ -51,7 +51,7 @@ class WPCD_Category_Discount {
 	/**
 	 * The current version of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   protected
 	 * @var      string    $version    The current version of the plugin.
 	 */
@@ -64,13 +64,13 @@ class WPCD_Category_Discount {
 	 * Load the dependencies, define the locale, and set the hooks for the admin area and
 	 * the public-facing side of the site.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public function __construct() {
 		if ( defined( 'WPCD_CATEGORY_DISCOUNT_VERSION' ) ) {
 			$this->version = WPCD_CATEGORY_DISCOUNT_VERSION;
 		} else {
-			$this->version = '1.0.0';
+			$this->version = '5.0';
 		}
 		$this->plugin_name = 'wpcd-category-discount';
 
@@ -94,7 +94,7 @@ class WPCD_Category_Discount {
 	 * Create an instance of the loader which will be used to register the hooks
 	 * with WordPress.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 */
 	private function load_dependencies() {
@@ -147,7 +147,7 @@ class WPCD_Category_Discount {
 	 * Uses the WPCD_Category_Discount_i18n class in order to set the domain and to register the hook
 	 * with WordPress.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 */
 	private function set_locale() {
@@ -162,7 +162,7 @@ class WPCD_Category_Discount {
 	 * Register all of the hooks related to the admin area functionality
 	 * of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 */
 	private function define_admin_hooks() {
@@ -178,6 +178,9 @@ class WPCD_Category_Discount {
 		$this->loader->add_action( 'wpcd_remove_discount_setup', $plugin_admin, 'remove_discount_setup', 10, 1 );
 		$this->loader->add_action( 'wpcd_remove_discount', $plugin_admin, 'remove_discount', 10, 2 );
 		$this->loader->add_action( 'admin_notices', $plugin_admin, 'admin_notices');
+		$this->loader->add_action( 'woocommerce_process_product_meta', $plugin_admin, 'apply_discount_price_on_product_save', 99, 2);
+		$this->loader->add_action( 'updated_postmeta', $plugin_admin, 'change_price_keys', 99, 4);
+
 		$this->loader->add_action( 'admin_init', $legacy_migrate, 'migrate_data');
 		$this->loader->add_action( 'wpcd_discount_legacy_migrate', $legacy_migrate, 'set_migration_keys', 10, 2);
 
@@ -191,7 +194,7 @@ class WPCD_Category_Discount {
 	 * Register all of the hooks related to the public-facing functionality
 	 * of the plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 */
 	private function define_public_hooks() {
@@ -214,7 +217,7 @@ class WPCD_Category_Discount {
 	/**
 	 * Run the loader to execute all of the hooks with WordPress.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public function run() {
 		$this->loader->run();
@@ -224,7 +227,7 @@ class WPCD_Category_Discount {
 	 * The name of the plugin used to uniquely identify it within the context of
 	 * WordPress and to define internationalization functionality.
 	 *
-	 * @since     1.0.0
+	 * @since     5.0
 	 * @return    string    The name of the plugin.
 	 */
 	public function get_plugin_name() {
@@ -234,7 +237,7 @@ class WPCD_Category_Discount {
 	/**
 	 * The reference to the class that orchestrates the hooks with the plugin.
 	 *
-	 * @since     1.0.0
+	 * @since     5.0
 	 * @return    WPCD_Category_Discount_Loader    Orchestrates the hooks of the plugin.
 	 */
 	public function get_loader() {
@@ -244,7 +247,7 @@ class WPCD_Category_Discount {
 	/**
 	 * Retrieve the version number of the plugin.
 	 *
-	 * @since     1.0.0
+	 * @since     5.0
 	 * @return    string    The version number of the plugin.
 	 */
 	public function get_version() {

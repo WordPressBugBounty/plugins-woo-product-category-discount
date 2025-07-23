@@ -4,7 +4,7 @@
  * The public-facing functionality of the plugin.
  *
  * @link       https://www.quanticedgesolutions.com
- * @since      1.0.0
+ * @since      5.0
  *
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/public
@@ -14,7 +14,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * The ID of this plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 * @var      string    $plugin_name    The ID of this plugin.
 	 */
@@ -23,7 +23,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * The version of this plugin.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 * @var      string    $version    The current version of this plugin.
 	 */
@@ -32,7 +32,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * The database object.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @access   private
 	 * @var      object    $wpdb    The database object.
 	 */
@@ -41,7 +41,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * Initialize the class and set its properties.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 * @param      string    $plugin_name       The name of the plugin.
 	 * @param      string    $version    The version of this plugin.
 	 */
@@ -55,7 +55,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * Register the stylesheets for the public-facing side of the site.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public function enqueue_styles() {
 		wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/wpcd-category-discount-public.css', array(), $this->version, 'all' );
@@ -64,7 +64,7 @@ class WPCD_Category_Discount_Public {
 	/**
 	 * Register the JavaScript for the public-facing side of the site.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public function enqueue_scripts() {
 		wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/wpcd-category-discount-public.js', array( 'jquery' ), $this->version, false );
@@ -442,7 +442,7 @@ class WPCD_Category_Discount_Public {
 	 * 
 	 * @return array The available discounts.
 	 * 
-	 * @since 1.0.0
+	 * @since 5.0
 	 */
 	private function get_the_available_discounts($total_cart_value=0, $cart_discount_type='cart_value', $auto_add_to_cart='yes'){
 		$date = date('Y-m-d');

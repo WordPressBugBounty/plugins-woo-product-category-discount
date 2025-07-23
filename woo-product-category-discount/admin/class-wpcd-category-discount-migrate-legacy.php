@@ -54,6 +54,10 @@ class WPCD_Category_Discount_Migrate_Legacy {
             return;
         }
 
+        if( get_option('wpcd_tables_created') != 'yes' ) {
+			activate_wpcd_category_discount();
+		}
+
         $category_discount = get_option('wpcd_category_discount', serialize( array() ) );
         $category_discount = maybe_unserialize( $category_discount );
 

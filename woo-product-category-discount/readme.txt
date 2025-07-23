@@ -55,9 +55,9 @@ If the discount applied has status "inactive", then it will not be active discou
 
 You can add multiple conditions by clicking on "Add Condition" button. Also you can specify whether you want "All" conditions to be met or "ANY".
 
-= How can I remove the database table while uninstalling the plugin? =
+= How can I remove the database while uninstalling the plugin? =
 
-Please add the following line in wp-config.php before uninstalling the plugin(if you want to remove the database table):
+Please add the following line in wp-config.php before uninstalling the plugin:
 define( 'WPCD_REMOVE_TABLES', true );
 
 == Screenshots ==
@@ -69,99 +69,12 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
-
-= 1.0 =
-* Initial release of plugin.
-
-= 1.1 =
-* Fix for multiple categories can be assigned to one product while applying discount. The maximum amount of discount will be applied to the product.
-
-= 2.1 = 
-* Removed button based "Save" functionality. Discounts will be updated for each category as soon as user updates it.
-* Ajax based discount application for best performance and larger systems.
-
-= 2.2 =
-* This is a minor update with fixes to update discounts.
-
-= 2.3 =
-* Added support for woocommerce 3.x
-
-= 2.4 =
-* Added condition for more consistency
-
-= 2.5 =
-* Fix for handling empty instances of product from database which may brake process
-
-= 2.6 =
-* Added thank you note.
-
-= 2.7 =
-* Woocommerce 3.4 compatible.
-
-= 2.8 =
-* Version release of 3.3 for Pro version.
-
-= 3.0 =
-* Feature : Allow category % discount
-
-= 3.1 =
-* WP 5.4 compatibility tested
-* Woocommerce 4.1 Compatible
-
-= 3.2 =
-* Fixed links
-
-= 3.3 =
-* Remove product discount completely for previously discounted items on sale when discount is turned off using plugin
-
-= 4.0 =
-* Disabled all discount amount & type editing when sale is ongoing
-* Fixed a query which could cause sometimes not applying discounts
-
-= 4.1 =
-* Fixed error for first time users
-
-= 4.2 =
-* Fixed conflict with woocommerce sku fields
-
-= 4.3 =
-* Fixed for a warning
-
-= 4.4 =
-* Fixed for header already sent warning
-
-= 4.5 =
-* Fix for standards
-
-= 4.6 =
-* Fix for floatval
-
-= 4.7 =
-* Fix for rare scenario while removing discount. It added regular price as sale price.
-
-= 4.10 =
-* Fix for a fatal error for some variations.
-
-= 4.11 =
-* Nonce verification for admin
-
-= 4.12 =
-* Added capability check
-
-= 4.13 =
-* Added capability check for AJAX
-
-= 4.14 =
-* Allowed shop manager access to discount page
-
-= 5.0 =
-* Major release with advanced features
-
-= 5.1 =
-* Updated menu name
-
-= 5.2 =
-* Fix for file name
+= 5.4 =
+* Added the highest applicable discount to product.
+* Automatically applies any other discount that is eligible for product.
+* Disable editing and deleting while discount is in progress.
+* Automatically adds the discount when the new product is created.
+* Resolved the discount remove bug.
 
 = 5.3 =
 * Added check before deleting database tables.
@@ -169,5 +82,98 @@ define( 'WPCD_REMOVE_TABLES', true );
 * Resolved the quantity based discount issue.
 * Added check for plugin table creation if not created while activation.
 * Calculated discount using regular price instead of already discounted price.
+
+= 5.2 =
+* Fix for file name
+
+= 5.1 =
+* Updated menu name
+
+= 5.0 =
+* Major release with advanced features
+
+= 4.14 =
+* Allowed shop manager access to discount page
+
+= 4.13 =
+* Added capability check for AJAX
+
+= 4.12 =
+* Added capability check
+
+= 4.11 =
+* Nonce verification for admin
+
+= 4.10 =
+* Fix for a fatal error for some variations.
+
+= 4.7 =
+* Fix for rare scenario while removing discount. It added regular price as sale price.
+
+= 4.6 =
+* Fix for floatval
+
+= 4.5 =
+* Fix for standards
+
+= 4.4 =
+* Fixed for header already sent warning
+
+= 4.3 =
+* Fixed for a warning
+
+= 4.2 =
+* Fixed conflict with woocommerce sku fields
+
+= 4.1 =
+* Fixed error for first time users
+
+= 4.0 =
+* Disabled all discount amount & type editing when sale is ongoing
+* Fixed a query which could cause sometimes not applying discounts
+
+= 3.3 =
+* Remove product discount completely for previously discounted items on sale when discount is turned off using plugin
+
+= 3.2 =
+* Fixed links
+
+= 3.1 =
+* WP 5.4 compatibility tested
+* Woocommerce 4.1 Compatible
+
+= 3.0 =
+* Feature : Allow category % discount
+
+= 2.8 =
+* Version release of 3.3 for Pro version.
+
+= 2.7 =
+* Woocommerce 3.4 compatible.
+
+= 2.6 =
+* Added thank you note.
+
+= 2.5 =
+* Fix for handling empty instances of product from database which may brake process
+
+= 2.4 =
+* Added condition for more consistency
+
+= 2.3 =
+* Added support for woocommerce 3.x
+
+= 2.2 =
+* This is a minor update with fixes to update discounts.
+
+= 2.1 = 
+* Removed button based "Save" functionality. Discounts will be updated for each category as soon as user updates it.
+* Ajax based discount application for best performance and larger systems.
+
+= 1.1 =
+* Fix for multiple categories can be assigned to one product while applying discount. The maximum amount of discount will be applied to the product.
+
+= 1.0 =
+* Initial release of plugin.
 
 == Upgrade Notice ==

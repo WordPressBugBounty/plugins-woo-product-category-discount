@@ -4,7 +4,7 @@
  * Fired during plugin deactivation
  *
  * @link       https://www.quanticedgesolutions.com
- * @since      1.0.0
+ * @since      5.0
  *
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/includes
@@ -16,7 +16,7 @@ class WPCD_Category_Discount_Deactivator {
 	 *
 	 * Long Description.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public static function deactivate() {
 

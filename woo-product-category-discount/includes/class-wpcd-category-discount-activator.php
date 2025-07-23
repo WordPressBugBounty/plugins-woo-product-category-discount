@@ -4,7 +4,7 @@
  * Fired during plugin activation
  *
  * @link       https://www.quanticedgesolutions.com
- * @since      1.0.0
+ * @since      5.0
  *
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/includes
@@ -15,7 +15,7 @@
  *
  * This class defines all code necessary to run during the plugin's activation.
  *
- * @since      1.0.0
+ * @since      5.0
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/includes
  * @author     QuanticEdge <info@quanticedge.co.in>
@@ -25,7 +25,7 @@ class WPCD_Category_Discount_Activator {
 	/**
 	 * Creates the required database tables and sets up the initial plugin state.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public static function activate() {
 		global $wpdb;

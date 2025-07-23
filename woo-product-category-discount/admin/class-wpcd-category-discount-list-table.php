@@ -37,7 +37,7 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
     /**
      * Prepares the list of items for displaying.
      *
-     * @since 1.0.0
+     * @since 5.0
      *
      * @return void
      */
@@ -113,19 +113,20 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
                     }
                 }
 
+
+                if( $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'] ){
+                    return __('Processing', 'wpcd-category-discount');
+                }
+
+                if ( $item[$column_name] == 1 && $start_date && $today < $start_date) {
+                    return __('Scheduled', 'wpcd-category-discount');
+                }
+
+                if ( $item[$column_name] == 1 && $start_date && $end_date && ($today < $start_date || $today > $end_date)) {
+                    return __('Scheduled', 'wpcd-category-discount');
+                }
+                
                 if ($item[$column_name] == 1) {
-                    if( $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'] ){
-                        return __('Processing', 'wpcd-category-discount');
-                    }
-
-                    if ($start_date && $today < $start_date) {
-                        return __('Scheduled', 'wpcd-category-discount');
-                    }
-
-                    if ($start_date && $end_date && ($today < $start_date || $today > $end_date)) {
-                        return __('Scheduled', 'wpcd-category-discount');
-                    }
-
                     return __('Active', 'wpcd-category-discount');
                 } else {
                     return __('Inactive', 'wpcd-category-discount');
@@ -143,21 +144,23 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
      * @return string Text or HTML to be placed inside the column <td>
      */
     public function column_name($item) {
+        $is_view = $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'];
+        if( $is_view ){
+            $view_url = admin_url('admin.php?page=wpcd-category-discount&action=view-progress&id=' . $item['id']);
+            $actions['view'] = '<a href="' . esc_url($view_url) . '">' . __('View Progress', 'wpcd-category-discount') . '</a>';
+            return '<strong onclick="statusCheck(this)" style="cursor:pointer;">' . esc_html($item['name']) . '</strong>' . $this->row_actions($actions);
+        }
+
         $edit_url = admin_url('admin.php?page=wpcd-category-discount&action=edit&id=' . $item['id']);
         $delete_url = wp_nonce_url(
             admin_url('admin.php?page=wpcd-category-discount&action=delete&id=' . $item['id']),
             'wpcd_delete_discount_' . $item['id']
         );
-        $view_url = admin_url('admin.php?page=wpcd-category-discount&action=view-progress&id=' . $item['id']);
-
+        
         $actions = [
             'edit' => '<a href="' . esc_url($edit_url) . '">' . __('Edit', 'wpcd-category-discount') . '</a>',
             'delete' => '<a href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Are you sure you want to delete this discount?', 'wpcd-category-discount')) . '\')">' . __('Delete', 'wpcd-category-discount') . '</a>',
         ];
-
-        if( $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'] ){
-            $actions['view'] = '<a href="' . esc_url($view_url) . '">' . __('View Progress', 'wpcd-category-discount') . '</a>';
-        }
 
         return '<strong><a href="' . esc_url($edit_url) . '">' . esc_html($item['name']) . '</a></strong>' . $this->row_actions($actions);
     }
