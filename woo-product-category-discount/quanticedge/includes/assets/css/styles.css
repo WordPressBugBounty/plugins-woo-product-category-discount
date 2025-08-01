@@ -1,0 +1,14 @@
+.qc-info {
+	display: inline-flex;
+	gap: 15px;
+}
+
+.qc-about, .qc-contact {
+	width: 50%;
+	max-width: 100%;
+}
+
+.qc-contact {
+    text-decoration: none!important;
+    font-size: 15px;
+}

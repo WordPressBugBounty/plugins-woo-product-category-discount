@@ -189,13 +189,13 @@ class WPCD_Category_Discount_Admin {
 	 * @since    5.0
 	 */
 	public function admin_menu() {
-		add_menu_page(
+		add_submenu_page(
+			'quanticedge',
 			__( 'Simple Discount Rules', 'wpcd-category-discount' ),
 			__( 'Simple Discount Rules', 'wpcd-category-discount' ),
 			'manage_options',
 			self::$menu_slug,
 			array( $this, 'render_category_discount' ),
-			'dashicons-tag',
 			6
 		);
 	}

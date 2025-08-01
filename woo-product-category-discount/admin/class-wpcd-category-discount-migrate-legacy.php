@@ -4,7 +4,7 @@
  * The legacy migration functionality of the plugin.
  *
  * @link       https://www.quanticedgesolutions.com
- * @since      1.0.0
+ * @since      5.0
  *
  * @package    WPCD_Category_Discount
  * @subpackage WPCD_Category_Discount/admin
@@ -14,7 +14,7 @@ class WPCD_Category_Discount_Migrate_Legacy {
 	/**
 	 * wpdb object
 	 * 
-	 * @since	1.0.0
+	 * @since	 5.0
 	 * @access  private
 	 * @var		object 		$wpdb 			Object of wpdb
 	 */
@@ -24,7 +24,7 @@ class WPCD_Category_Discount_Migrate_Legacy {
     /**
      * admin_object object
      * 
-     * @since 1.0.0
+     * @since  5.0
      * @access private
      * @var     object 		$admin_object 			Object of admin class
      */
@@ -33,7 +33,7 @@ class WPCD_Category_Discount_Migrate_Legacy {
 	/**
 	 * Initialize the class and set its properties.
 	 *
-	 * @since    1.0.0
+	 * @since    5.0
 	 */
 	public function __construct( $plugin_name, $version ) {
 		global $wpdb;
@@ -46,7 +46,7 @@ class WPCD_Category_Discount_Migrate_Legacy {
      *
      * This function is used to migrate the data from the old plugin to the new plugin.
      *
-     * @since 1.0.0
+     * @since 5.0
      * @return void
      */
     public function migrate_data(){
@@ -109,6 +109,8 @@ class WPCD_Category_Discount_Migrate_Legacy {
      * @param array $discount The discount data.
      *
      * @return void
+     * 
+     * @since 5.0
      */
     private function insert_discount( $taxonomy, $term_id, $discount ){
         $start_date = !empty( $discount['fDate'] ) ? DateTime::createFromFormat('Y/m/d H:i', $discount['fDate']) : null;
@@ -182,6 +184,8 @@ class WPCD_Category_Discount_Migrate_Legacy {
      * @param array $product_ids The list of product ids to which the discount should be applied.
      *
      * @return void
+     * 
+     * @since 5.0
      */
     public function set_migration_keys( $discount_id, $product_ids ){
         foreach( $product_ids as $product_id ){
@@ -199,6 +203,47 @@ class WPCD_Category_Discount_Migrate_Legacy {
                 update_post_meta( $product_id, '_wpcd_original_regular_price', $product->get_regular_price() );
                 update_post_meta( $product_id, '_wpcd_original_sale_price', '' );
                 update_post_meta( $product_id, '_wpcd_original_price', $product->get_regular_price() );
+            }
+        }
+    }
+
+    /**
+     * Handles updating of cron jobs after plugin update.
+     *
+     * @param object $upgradder_object The upgradder object.
+     * @param array $options The options for the upgradder object.
+     *
+     * @return void
+     * 
+     * @since 5.4
+     */
+    public function cron_updates($upgradder_object, $options){
+        if( $options['action'] == 'update' && $options['type'] == 'plugin' && !empty($options['plugins']) && in_array(WPCD_PLUGIN_BASE_NAME, $options['plugins'], true) ){
+            $hooks_to_update = array('wpcd_apply_discount_setup', 'wpcd_remove_discount_setup');
+            $crons = get_option('cron'); 
+
+            if (empty($crons) || !is_array($crons)) return;
+
+            foreach ($crons as $timestamp => $events) {
+                if (!is_array($events)) continue;
+
+                foreach ($hooks_to_update as $hook) {
+                    if (isset($events[$hook]) && is_array($events[$hook])) {
+                        foreach ($events[$hook] as $event) {
+                            $args = isset($event['args']) ? $event['args'] : array();
+
+                            unset($args[0]['total_chunks'], $args[0]['processed_chunks']);
+
+                            wp_unschedule_event($timestamp, $hook, $event['args']);
+ 
+                            if (!empty($args)) {
+                                wp_schedule_single_event($timestamp, $hook, $args);
+                            } else {
+                                wp_schedule_single_event($timestamp, $hook);
+                            }
+                        }
+                    }
+                }
             }
         }
     }
