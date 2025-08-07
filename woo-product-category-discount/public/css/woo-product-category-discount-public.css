@@ -1,0 +1,13 @@
+.wpcd-free-gift-class .wc-block-components-quantity-selector {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.wpcd-free-gift-class .wc-block-components-product-details__free-gift {
+  display: none;
+}
+
+dt.variation-_free_gift,
+dd.variation-_free_gift {
+  display: none;
+}

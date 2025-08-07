@@ -3,12 +3,12 @@
  * Plugin Name:       Simple Discount Rules for Woocommerce
  * Plugin URI:        https://www.quanticedgesolutions.com
  * Description:       Easily create advanced discount rules for your WooCommerce store! Set up discounts based on categories, tags, cart value, or product quantity—with full scheduling, smart product matching, and smooth processing that works great even on large stores. Discounts apply in real time, with progress updates shown to the user.
- * Version:           5.5
+ * Version:           5.6
  * Author:            QuanticEdge
  * Author URI:        https://www.quanticedgesolutions.com/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
- * Text Domain:       wpcd-category-discount
+ * Text Domain:       woo-product-category-discount
  * Domain Path:       /languages
  */
 
@@ -22,7 +22,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 5.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.5' );
+define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.6' );
 
 /**
  * Defines the path of base name of plugin.
@@ -31,19 +31,19 @@ define( 'WPCD_PLUGIN_BASE_NAME', plugin_basename(__FILE__) );
 
 /**
  * The code that runs during plugin activation.
- * This action is documented in includes/class-wpcd-category-discount-activator.php
+ * This action is documented in includes/class-woo-product-category-discount-activator.php
  */
 function activate_wpcd_category_discount() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-wpcd-category-discount-activator.php';
+	require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-product-category-discount-activator.php';
 	WPCD_Category_Discount_Activator::activate();
 }
 
 /**
  * The code that runs during plugin deactivation.
- * This action is documented in includes/class-wpcd-category-discount-deactivator.php
+ * This action is documented in includes/class-woo-product-category-discount-deactivator.php
  */
 function deactivate_wpcd_category_discount() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-wpcd-category-discount-deactivator.php';
+	require_once plugin_dir_path( __FILE__ ) . 'includes/class-woo-product-category-discount-deactivator.php';
 	WPCD_Category_Discount_Deactivator::deactivate();
 }
 
@@ -54,7 +54,7 @@ register_deactivation_hook( __FILE__, 'deactivate_wpcd_category_discount' );
  * The core plugin class that is used to define internationalization,
  * admin-specific hooks, and public-facing site hooks.
  */
-require plugin_dir_path( __FILE__ ) . 'includes/class-wpcd-category-discount.php';
+require plugin_dir_path( __FILE__ ) . 'includes/class-woo-product-category-discount.php';
 
 /**
  * Begins execution of the plugin.

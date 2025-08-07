@@ -1,14 +1,175 @@
 .qc-info {
-	display: inline-flex;
-	gap: 15px;
+  display: inline-flex;
+  gap: 15px;
 }
 
-.qc-about, .qc-contact {
-	width: 50%;
-	max-width: 100%;
+.qc-about,
+.qc-contact {
+  width: 50%;
+  max-width: 100%;
 }
 
 .qc-contact {
-    text-decoration: none!important;
-    font-size: 15px;
+  text-decoration: none !important;
+  font-size: 15px;
+}
+
+.banner {
+  margin-top: 30px;
+  padding: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 30px;
+  background: linear-gradient(
+    30deg,
+    rgba(71, 98, 229, 1) 0%,
+    rgba(1, 74, 179, 1) 100%
+  );
+  color: white;
+}
+
+.left {
+  flex: 1.6;
+  text-align: left;
+}
+
+.left h2 {
+  font-size: 50px;
+  line-height: 63px;
+  font-weight: bold;
+  margin-bottom: 40px;
+  padding-left: 40px;
+  margin-top: 40px;
+  color: #fff;
+}
+
+.view-more-btn {
+  background: #00376b;
+  color: white;
+  padding: 12px 36px;
+  border-radius: 25px;
+  text-decoration: none;
+  font-weight: 500;
+  margin-top: 20px;
+  margin-left: 40px;
+  font-size: 21px;
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+  display: inline-flex;
+  gap: 10px;
+}
+
+.view-more-btn:hover {
+  background: #013680;
+  color: white;
+}
+
+.view-more-btn svg {
+  width: 20px;
+  height: 20px;
+  margin-top: 5px;
+}
+
+.right {
+  flex: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px 32px;
+  contain-intrinsic-block-size: auto 100px;
+  padding: 40px 40px 40px 0;
+}
+
+.plugin-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.plugin-item:last-child {
+  grid-column: span 2;
+}
+
+.plugin-item .icon {
+  margin-top: 3px;
+}
+
+.plugin-item .icon img {
+  width: 27px;
+  height: 27px;
+}
+
+.plugin-item .text a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 18px;
+  line-height: 24px;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.plugin-item .text p {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 400;
+  margin: 0;
+}
+
+.logo-bg {
+  width: 150px;
+  height: 150px;
+  background: white;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  top: -29px;
+  left: -16px;
+  z-index: 2;
+}
+
+.logo-bg img {
+  width: 80%;
+  height: auto;
+}
+
+@media only screen and (max-width: 768px) {
+  .banner {
+    display: grid;
+    gap: 15px;
+  }
+
+  .right {
+    padding: 40px;
+  }
+
+  .left h2 {
+    margin-bottom: 30px;
+    padding-left: 40px;
+    margin-top: 20px;
+  }
+}
+
+@media only screen and (max-width: 500px) {
+  .right {
+    padding: 30px;
+    grid-template-columns: 1fr;
+  }
+
+  .left h2 {
+    margin-bottom: 20px;
+    padding-left: 30px;
+    margin-top: 20px;
+    font-size: 42px;
+    line-height: 51px;
+  }
+
+  .plugin-item {
+    grid-column: span 2;
+  }
 }

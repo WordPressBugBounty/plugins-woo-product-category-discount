@@ -69,6 +69,12 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
+= 5.6 =
+* Changed the text domain for translations.
+* Added settings links on plugins page.
+* Removed the manual translation loading.
+* Resolved the fatal error throwing when price was not set.
+
 = 5.5 = 
 * Resolved the issue of discount scheduler was not removed when discount was created in past versions.
 * Added QuanticEdge main menu and made the plugin part of the same.
