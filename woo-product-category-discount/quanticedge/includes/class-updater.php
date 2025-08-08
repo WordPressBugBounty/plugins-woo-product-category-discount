@@ -125,6 +125,15 @@ class QuanticEdge_Updater{
 							<p>Apply discounts by category, tags, attributes – works for thousands of products.</p>
 						</div>
 					</div>
+
+					<div class="plugin-item">
+						<div class="icon"><img src="<?php echo plugin_dir_url( __FILE__ ) . 'images/checkbox.png'; ?>" alt="checkbox"></div>
+						<div class="text">
+							<a href="javascript:void(0)"
+								target="_blank">Build Your Own Basket for WooCommerce</a>
+							<p>Let your customers build what they love! Try it now! - It's free!</p>
+						</div>
+					</div>
 				</div>
     		</div>
 			<div class="qc-info">

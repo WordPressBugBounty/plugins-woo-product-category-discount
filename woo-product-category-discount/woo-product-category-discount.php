@@ -3,13 +3,14 @@
  * Plugin Name:       Simple Discount Rules for Woocommerce
  * Plugin URI:        https://www.quanticedgesolutions.com
  * Description:       Easily create advanced discount rules for your WooCommerce store! Set up discounts based on categories, tags, cart value, or product quantity—with full scheduling, smart product matching, and smooth processing that works great even on large stores. Discounts apply in real time, with progress updates shown to the user.
- * Version:           5.6
+ * Version:           5.7
  * Author:            QuanticEdge
  * Author URI:        https://www.quanticedgesolutions.com/
  * License:           GPL-2.0+
  * License URI:       http://www.gnu.org/licenses/gpl-2.0.txt
  * Text Domain:       woo-product-category-discount
  * Domain Path:       /languages
+ * Requires at least: 6.0
  */
 
 // If this file is called directly, abort.
@@ -22,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 5.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.6' );
+define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.7' );
 
 /**
  * Defines the path of base name of plugin.

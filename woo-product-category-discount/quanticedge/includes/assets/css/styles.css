@@ -86,10 +86,6 @@
   gap: 10px;
 }
 
-.plugin-item:last-child {
-  grid-column: span 2;
-}
-
 .plugin-item .icon {
   margin-top: 3px;
 }

@@ -69,6 +69,10 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
+= 5.7 =
+* Resolved the issue of blank page on settings.
+* Added version requirement of wordpress.
+
 = 5.6 =
 * Changed the text domain for translations.
 * Added settings links on plugins page.

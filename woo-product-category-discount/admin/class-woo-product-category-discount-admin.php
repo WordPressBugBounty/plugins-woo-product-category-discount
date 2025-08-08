@@ -251,7 +251,7 @@ class WPCD_Category_Discount_Admin {
 	 * @since 5.0
 	 */
 	public function render_add_discount() {
-		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-add-discount.php.php';
+		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-add-discount.php';
 	}
 
 	/**
