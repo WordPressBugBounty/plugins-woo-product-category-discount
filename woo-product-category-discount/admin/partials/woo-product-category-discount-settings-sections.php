@@ -1,0 +1,1 @@
+<p><?php echo esc_html__('Configure how discounts are processed in your store.', 'woo-product-category-discount'); ?></p>

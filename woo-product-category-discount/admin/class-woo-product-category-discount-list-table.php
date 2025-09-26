@@ -65,7 +65,7 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
 
         // Query items for current page
         $results = $wpdb->get_results($wpdb->prepare("
-            SELECT d.id, d.name, d.discount_type, d.rule_type, d.start_date, d.end_date, d.discount_amount_type, d.discount_amount, d.status, d.total_chunks, d.processed_chunks, cr.cart_discount_type, cr.min_cart_value, cr.max_cart_value FROM $table d
+            SELECT d.id, d.name, d.discount_type, d.rule_type, d.start_date, d.end_date, d.discount_amount_type, d.discount_amount, d.status, d.total_chunks, d.processed_chunks, d.user_id, d.updated_at, cr.cart_discount_type, cr.min_cart_value, cr.max_cart_value FROM $table d
             LEFT JOIN $cart_rule_table cr ON d.id = cr.discount_id 
             $search 
             ORDER BY $orderby $order 
@@ -93,44 +93,71 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
     public function column_default($item, $column_name) {
         switch ($column_name) {
             case 'discount_type':
-                return $item[$column_name] == 0 ? __('All Products','woo-product-category-discount') : ( $item[$column_name] == 1 ? __('Taxonomy','woo-product-category-discount') : ( $item[$column_name] == 2 ? __('Cart Value','woo-product-category-discount') : __('Quantity','woo-product-category-discount')) );
+                switch( $item[$column_name] ){
+                    case 0:
+                        $output = __('All Products','woo-product-category-discount');
+                        break;
+
+                    case 1:
+                        global $wpdb;
+                        $output = __('Taxonomy','woo-product-category-discount');
+                        $relations = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$wpdb->prefix}wpcd_taxonomy_discount_terms WHERE discount_id = %d", $item['id'] ) );
+                        if( count( $relations ) > 0 ){
+                           $terms_output = [];
+                            foreach ( $relations as $rel ) {
+                                $terms = explode(',', $rel->terms);
+                                foreach( $terms as $term_id){
+                                    $term = get_term( (int) $term_id, $rel->taxonomy );
+                                    if ( $term && ! is_wp_error( $term ) ) {
+                                        $terms_output[$rel->taxonomy][] = $term;
+                                    }
+                                }
+                            }
+
+                            $output .= '<div class="taxonomy-details">';
+                            $elements = 0;
+                            foreach( $terms_output as $taxonomy => $terms ){
+                                $output .= '<div class="taxonomy-data ' . ($elements > 0 ? 'wpcd-hidden' : '') . '">';
+                                $output .= '<span class="tax-name">' . esc_html( get_taxonomy( $taxonomy )->labels->singular_name ). ': </span>';
+                                $output .= '<span class="tax-terms">';
+
+                                foreach( $terms as $term ){
+                                    $output .= '<span class="tax-term ' . ($elements > 0 ? 'wpcd-hidden' : '') . '"><a target="_blank" href="' . get_edit_term_link( (int) $term->term_id, $taxonomy ) . '">' . esc_html( $term->name ) . '</a></span>';
+                                    ++$elements;
+                                }
+
+                                $output .= '</span></div>';
+                            }
+
+                            if( $elements > 1 ){
+                                $output .= '<div class="view-more"><a class="view-more-btn" href="javascript:void(0);">' . __('View More', 'woo-product-category-discount') . '</a></div>';
+                            }
+                        }
+                        break;
+
+                    case 2:
+                        $output = __('Cart Value','woo-product-category-discount');
+                        break;
+                        
+                    case 3:
+                        $output = __('Cart Quantity','woo-product-category-discount');
+                        break;
+                        
+                    default:
+                        $output = $item[$column_name];
+                    }
+                return $output;
+
             case 'discount_amount':
                 if( $item['discount_type'] == 2 && $item['cart_discount_type'] == 1){
                     return __('Free Products', 'woo-product-category-discount');
                 }
                 return $item['discount_amount_type'] == 0 ? $item[$column_name] . '%' : $item[$column_name];
-            case 'status':
-                $today = date('Y-m-d');
-                $start_date = isset($item['start_date']) ? $item['start_date'] : null;
-                $end_date = isset($item['end_date']) ? $item['end_date'] : null;
-                if( $item['discount_type'] == 2 || $item['discount_type'] == 3){
-                    if( $item[$column_name] == 0  ){
-                        return __('Inactive', 'woo-product-category-discount');
-                    } else if (($start_date && $today < $start_date) || ($start_date && $end_date && ($today < $start_date || $today > $end_date))) {
-                        return __('Scheduled', 'woo-product-category-discount');
-                    } else {
-                        return __('Active', 'woo-product-category-discount');
-                    }
-                }
-
-
-                if( $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'] ){
-                    return __('Processing', 'woo-product-category-discount');
-                }
-
-                if ( $item[$column_name] == 1 && $start_date && $today < $start_date) {
-                    return __('Scheduled', 'woo-product-category-discount');
-                }
-
-                if ( $item[$column_name] == 1 && $start_date && $end_date && ($today < $start_date || $today > $end_date)) {
-                    return __('Scheduled', 'woo-product-category-discount');
-                }
-                
-                if ($item[$column_name] == 1) {
-                    return __('Active', 'woo-product-category-discount');
-                } else {
-                    return __('Inactive', 'woo-product-category-discount');
-                }
+            
+            case 'start_date':
+            case 'end_date':
+                return !is_null( $item[$column_name] ) ? date_i18n( get_option( 'date_format' ), strtotime( $item[$column_name] ) ) : __('N/A', 'woo-product-category-discount');    
+            
             default:
                 return $item[$column_name];
         }
@@ -144,24 +171,67 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
      * @return string Text or HTML to be placed inside the column <td>
      */
     public function column_name($item) {
-        $is_view = $item['processed_chunks'] > 0 && $item['processed_chunks'] < $item['total_chunks'];
+        $is_view = wpcd_get_admin_discount_status( $item ) == 'processing';
         if( $is_view ){
             $view_url = admin_url('admin.php?page=woo-product-category-discount&action=view-progress&id=' . $item['id']);
             $actions['view'] = '<a href="' . esc_url($view_url) . '">' . __('View Progress', 'woo-product-category-discount') . '</a>';
-            return '<strong onclick="statusCheck(this)" style="cursor:pointer;">' . esc_html($item['name']) . '</strong>' . $this->row_actions($actions);
+            $output = '<strong onclick="statusCheck(this)" style="cursor:pointer;">' . esc_html($item['name']) . '</strong>' . $this->row_actions($actions);
+        } else {
+            $edit_url = admin_url('admin.php?page=woo-product-category-discount&action=edit&id=' . $item['id']);
+            $delete_url = wp_nonce_url(
+                admin_url('admin.php?page=woo-product-category-discount&action=delete&id=' . $item['id']),
+                'wpcd_delete_discount_' . $item['id']
+            );
+            
+            $actions = [
+                'edit' => '<a href="' . esc_url($edit_url) . '">' . __('Edit', 'woo-product-category-discount') . '</a>',
+            ];
+
+            if( $item['status'] == 0 ){
+                $actions['delete'] = '<a href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Are you sure you want to delete this discount?', 'woo-product-category-discount')) . '\')">' . __('Delete', 'woo-product-category-discount') . '</a>';
+            }
+
+            $output = '<strong><a href="' . esc_url($edit_url) . '">' . esc_html($item['name']) . '</a></strong>' . $this->row_actions($actions);
         }
 
-        $edit_url = admin_url('admin.php?page=woo-product-category-discount&action=edit&id=' . $item['id']);
-        $delete_url = wp_nonce_url(
-            admin_url('admin.php?page=woo-product-category-discount&action=delete&id=' . $item['id']),
-            'wpcd_delete_discount_' . $item['id']
-        );
-        
-        $actions = [
-            'edit' => '<a href="' . esc_url($edit_url) . '">' . __('Edit', 'woo-product-category-discount') . '</a>',
-            'delete' => '<a href="' . esc_url($delete_url) . '" onclick="return confirm(\'' . esc_js(__('Are you sure you want to delete this discount?', 'woo-product-category-discount')) . '\')">' . __('Delete', 'woo-product-category-discount') . '</a>',
-        ];
+        if ( ! empty( $item['updated_at'] ) ) {
+            $updated_timestamp = strtotime( $item['updated_at'] );
+            $user             = get_userdata( $item['user_id'] );
+            $user_name        = $user ? esc_html( $user->display_name ) : __( 'Unknown', 'woo-product-category-discount' );
 
-        return '<strong><a href="' . esc_url($edit_url) . '">' . esc_html($item['name']) . '</a></strong>' . $this->row_actions($actions);
+            $tooltip_text = sprintf(
+                /* translators: 1: user display name, 2: formatted date */
+                __( 'Last Updated: %1$s by %2$s', 'woo-product-category-discount' ),
+                date_i18n( get_option( 'date_format' ), $updated_timestamp ),
+                $user_name
+            );
+
+            $inner_output = sprintf(
+                '<span class="description" title="%s">%s</span>',
+                esc_attr( $tooltip_text ),
+                esc_attr( $tooltip_text ),
+            );
+        }
+
+        $output = '<span id="wpcd-item-' . $item['id'] . '">' . $output;
+
+        if ( isset( $inner_output ) ) {
+            $output .= $inner_output;
+        }
+
+        $output .= '</span>';
+
+        return $output;
+    }
+
+    /**
+     * Handles output for the status column.
+     *
+     * @param array $item The current item.
+     *
+     * @return string Text or HTML to be placed inside the column <td>
+     */
+    public function column_status( $item ){
+        echo wpcd_get_admin_discount_status_html($item);
     }
 }

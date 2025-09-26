@@ -63,7 +63,10 @@ class WPCD_Category_Discount_Migrate_Legacy {
 
         if (is_array($category_discount) && count($category_discount) > 0) {
             foreach ($category_discount as $category_id => $discount) {
-                $this->insert_discount( 'product_cat', $category_id, $discount );
+                $term = get_term( $category_id, 'product_cat' );
+                if( !is_null( $term ) && !is_wp_error( $term ) ){
+                    $this->insert_discount( 'product_cat', $category_id, $discount );
+                }
             }
         }
 
@@ -73,7 +76,7 @@ class WPCD_Category_Discount_Migrate_Legacy {
         if (is_array($attribute_discount) && count($attribute_discount) > 0) {
             foreach ($attribute_discount as $attribute_id => $discount) {
                 $term = get_term( $attribute_id );
-                if( is_wp_error( $term ) ){
+                if( is_wp_error( $term ) || is_null( $term ) ) {
                     continue;
                 }
                 $this->insert_discount( $term->taxonomy, $attribute_id, $discount );
@@ -85,7 +88,10 @@ class WPCD_Category_Discount_Migrate_Legacy {
 
         if (is_array($brand_discount) && count($brand_discount) > 0) {
             foreach ($brand_discount as $brand_id => $discount) {
-                $this->insert_discount( 'product_brand', $brand_id, $discount );
+                $term = get_term( $brand_id, 'product_brand' );
+                if( !is_null( $term ) && !is_wp_error( $term ) ){
+                    $this->insert_discount( 'product_brand', $brand_id, $discount );
+                }
             }
         }
 
@@ -94,7 +100,10 @@ class WPCD_Category_Discount_Migrate_Legacy {
 
         if (is_array($tag_discount) && count($tag_discount) > 0) {
             foreach ($tag_discount as $tag_id => $discount) {
-                $this->insert_discount( 'product_tag', $tag_id, $discount );
+                $term = get_term( $tag_id, 'product_tag' );
+                if( !is_null( $term ) && !is_wp_error( $term ) ){
+                    $this->insert_discount( 'product_tag', $tag_id, $discount );
+                }
             }
         }
 
@@ -138,7 +147,8 @@ class WPCD_Category_Discount_Migrate_Legacy {
             'discount_amount_type' => $discount['type'] == '% of Price' ? 0 : 1,
             'discount_amount' => $discount['value'],
             'status' => ($discount['isActive'] === "true" || $discount['isScheduled'] === "true") ? 1 : 0,
-            'total_chunks' => 0,
+            'total_chunks' => 1,
+            'processed_chunks' => 1
         ];
 
         $this->wpdb->insert( $this->wpdb->prefix . 'wpcd_discounts', $discount_data );
@@ -155,14 +165,15 @@ class WPCD_Category_Discount_Migrate_Legacy {
         $this->wpdb->insert( $this->wpdb->prefix . 'wpcd_taxonomy_discount_terms', $taxonomy_data );
     
         $discount_data = $this->admin_object->get_scheduled_discount_data( $discount_id );
+        $schedule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
 
         if( $discount_data['status'] == 1 && $discount['isScheduled'] === "true" ){
             if( strtotime( $start_date . ' 00:00:00' ) > time() ){
-                wp_schedule_single_event( strtotime( $start_date . ' 00:00:00'), 'wpcd_apply_discount_setup', [$discount_data] );
+                wp_schedule_single_event( strtotime( $start_date . ' 00:00:00'), 'wpcd_apply_discount_setup', [$schedule_discount_data] );
             }
 
             if( !empty( $end_date ) && strtotime( $end_date . ' 23:59:59' ) > time() ){
-                wp_schedule_single_event( strtotime( $end_date . ' 23:59:59'), 'wpcd_remove_discount_setup', [$discount_data] );
+                wp_schedule_single_event( strtotime( $end_date . ' 23:59:59'), 'wpcd_remove_discount_setup', [$schedule_discount_data] );
             }
         }
 
@@ -247,4 +258,17 @@ class WPCD_Category_Discount_Migrate_Legacy {
             }
         }
     }
+
+    /**
+	 * Prepares the discount data for scheduling.
+	 *
+	 * @param array $discount_data The discount data to prepare.
+	 *
+	 * @return array The prepared discount data.
+	 */
+	private function prepare_schedule_discount_data( $discount_data ){
+		unset( $discount_data['total_chunks'] );
+		unset( $discount_data['processed_chunks'] );
+		return $discount_data;
+	}
 }

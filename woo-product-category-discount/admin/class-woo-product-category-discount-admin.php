@@ -155,6 +155,7 @@ class WPCD_Category_Discount_Admin {
 					'min_quantity_label' 			=> __('Minimum Quantity', 'woo-product-category-discount'),
 					'max_quantity_label' 			=> __('Maximum Quantity (Optional)', 'woo-product-category-discount'),
 					'min_quantity_required' 		=> __('Minimum quanity is required.', 'woo-product-category-discount'),
+					'do_not_go_away' => __('Please stay on this page while your discount is being applied. Leaving now may cause the discount to not apply correctly.', 'woo-product-category-discount'),
 				],
 			]);
 		}
@@ -175,10 +176,24 @@ class WPCD_Category_Discount_Admin {
 		}
 
 		if( isset( $_GET['page'] ) && $_GET['page'] == self::$menu_slug ) {
-			wp_enqueue_script( 'woo-product-category-discount', plugin_dir_url( __FILE__ ) . 'js/woo-product-category-discount-admin.js', array('jquery'), $this->version, true );
-			wp_localize_script( 'woo-product-category-discount', 'wpcd', [
-				'message' => __('You cannot edit the discount while it is being processed. Please press OK to fetch the latest status.')
+			wp_enqueue_script( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'js/woo-product-category-discount-admin.js', array('jquery'), $this->version, true );
+			wp_localize_script( $this->plugin_name, 'wpcd', [
+				'message' => __('You cannot edit the discount while it is being processed. Please press OK to fetch the latest status.', 'woo-product-category-discount'),
+				'ajax_url' => admin_url( 'admin-ajax.php' ),
+				'update_discount_nonce' => wp_create_nonce('update_discount_nonce'),
+				'error' => __('There was an error. Please try again.', 'woo-product-category-discount'),
+				'loader_img' => '<img class="loader" src="' . plugin_dir_url( __FILE__ ) . 'assets/images/loader.gif" alt="processing" height="50">',
+				'check_discount_nonce' => wp_create_nonce('check_discount_nonce'),
+				'view_more' => __('View More', 'woo-product-category-discount'),
+				'view_less' => __('View Less', 'woo-product-category-discount'),
+				'wp_rest_nonce' => wp_create_nonce('wp_rest'),
+				'api_url'     => esc_url_raw(rest_url('wpcd/v1/')),
+				'active' 	  => __('(Active)', 'woo-product-category-discount'),
+				'inactive'    => __('(Inactive)', 'woo-product-category-discount'),
+				'processing_message' => __('Your discount is being updated. Please keep this page open while we finish.', 'woo-product-category-discount'),
 			]);
+
+			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/woo-product-category-discount-admin.css', array(), $this->version);
 		}
 	}
 
@@ -217,6 +232,8 @@ class WPCD_Category_Discount_Admin {
 		 	} else {
 				$this->render_add_discount();
 			}
+		} else if ( isset( $_GET['action'] ) && $_GET['action'] == 'settings' ){
+			$this->render_settings();
 		} else {
 			$this->render_discount_list();
 		}
@@ -264,6 +281,20 @@ class WPCD_Category_Discount_Admin {
 	public function render_discount_list() {
 		$list_table = new WPCD_Discount_List_Table();
 		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-list-table.php';
+	}
+
+	/**
+	 * Renders the settings page.
+	 *
+	 * This function is called when the user is on the plugin's settings page.
+	 *
+	 * @since 5.8
+	 */
+	public function render_settings(){
+		if (!current_user_can('manage_options')) {
+			wp_die( __('You are not allowed to edit this section.', 'woo-product-category-discount'));
+		}
+		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-settings.php';
 	}
 
 	/**
@@ -325,6 +356,22 @@ class WPCD_Category_Discount_Admin {
 		register_rest_route('wpcd/v1', '/schedule-discount', [
 			'methods'             => 'POST',
 			'callback'            => [$this, 'schedule_discount'],
+			'permission_callback' => function () {
+				return current_user_can('manage_woocommerce');
+			}
+		]);
+
+		register_rest_route('wpcd/v1', '/process-discount', [
+			'methods'			 	=> 'POST',
+			'callback' 				=> [$this, 'process_discount'],
+			'permission_callback' => function () {
+				return current_user_can('manage_woocommerce');
+			}
+		]);
+
+		register_rest_route('wpcd/v1', '/remove-discount', [
+			'methods'             => 'POST',
+			'callback'            => [$this, 'remove_discount_process'],
 			'permission_callback' => function () {
 				return current_user_can('manage_woocommerce');
 			}
@@ -433,7 +480,6 @@ class WPCD_Category_Discount_Admin {
 
 		return rest_ensure_response(['count' => $query->found_posts]);
 	}
-
 	
 	/**
 	 * Schedules a discount with the given options.
@@ -519,7 +565,19 @@ class WPCD_Category_Discount_Admin {
 
 		if( !empty( $discount_id ) ){
 			$discount_data = $this->get_scheduled_discount_data( $discount_id );
-			$this->maybe_inactive_discount( $discount_data );
+			if( $this->get_process_method() == 'cron' ){
+				$this->maybe_inactive_discount( $discount_data );
+			} else {
+				$previous_data = $discount_data;
+				$schdule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
+				if( !empty( $discount_data['start_date'] ) && strtotime( $discount_data['start_date'] . ' 00:00:00' ) > time() ){
+					wp_unschedule_event( strtotime( $discount_data['start_date'] . ' 00:00:00' ), 'wpcd_apply_discount_setup', [$schdule_discount_data] );
+				}
+
+				if( !empty( $discount_data['end_date'] ) && strtotime( $discount_data['end_date'] . ' 23:59:59' ) > time() ){
+					wp_unschedule_event( strtotime( $discount_data['end_date'] . ' 23:59:59' ), 'wpcd_remove_discount_setup', [$schdule_discount_data] );
+				}
+			}
 
 			$this->wpdb->delete(
 				$this->wpdb->prefix . 'wpcd_taxonomy_discount_terms',
@@ -552,11 +610,13 @@ class WPCD_Category_Discount_Admin {
 					'status'        		=> intval($status),
 					'total_chunks'			=> 1,
 					'processed_chunks'		=> 0,
+					'updated_at'			=> date('Y-m-d H:i:s'),
+					'user_id'				=> get_current_user_id()
 				],
 				[
 					'id'					=> $discount_id
 				],
-				['%s', '%d', '%d', '%s', '%s', '%d', '%f', '%d'],
+				['%s', '%d', '%d', '%s', '%s', '%d', '%f', '%d', '%d', '%d', '%s', '%d'],
 				['%d']
 			);
 		} else {
@@ -573,8 +633,10 @@ class WPCD_Category_Discount_Admin {
 					'status'        		=> intval($status),
 					'total_chunks'			=> 1,
 					'processed_chunks' 		=> 0,
+					'updated_at'			=> date('Y-m-d H:i:s'),
+					'user_id'				=> get_current_user_id()
 				],
-				['%s', '%d', '%d', '%s', '%s', '%d', '%f', '%d']
+				['%s', '%d', '%d', '%s', '%s', '%d', '%f', '%d', '%d', '%d', '%s', '%d']
 			);
 
 			$discount_id = $this->wpdb->insert_id;
@@ -632,13 +694,102 @@ class WPCD_Category_Discount_Admin {
 		$discount_data = $this->get_scheduled_discount_data( $discount_id );
 
 		if( $discount_data['status'] == 1 && ($discount_data['discount_type'] !== 'cart' && $discount_data['discount_type'] !== 'quantity') ){
-			$time = empty( $discount_data['start_date'] ) ? time() : strtotime($discount_data['start_date'] . ' 00:00:00');
-			$schdule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
-			wp_schedule_single_event($time, 'wpcd_apply_discount_setup', [$schdule_discount_data]);
-
-			if( $discount_data['end_date'] ){
-				wp_schedule_single_event(strtotime($discount_data['end_date'] . ' 23:59:59'), 'wpcd_remove_discount_setup', [$schdule_discount_data]);
+			if( $this->get_process_method() == 'cron' ){
+				$schedule = true;
+			} else {
+				if( !empty( $discount_data['start_date'] ) ){
+					$schedule = true;
+				}
 			}
+
+			$schdule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
+
+			if( $schedule ){
+				$time = empty( $discount_data['start_date'] ) ? time() : strtotime($discount_data['start_date'] . ' 00:00:00');
+				wp_schedule_single_event($time, 'wpcd_apply_discount_setup', [$schdule_discount_data]);
+
+				if( !empty( $discount_data['end_date'] ) ){
+					wp_schedule_single_event(strtotime($discount_data['end_date'] . ' 23:59:59'), 'wpcd_remove_discount_setup', [$schdule_discount_data]);
+				}
+
+				if( isset( $previous_data ) && ( empty( $previous_data['start_date'] ) || $previous_data['start_date'] <= date('Y-m-d') ) ){
+					$previous_data['processed_chunks'] = 0;
+					$query = $this->get_products_query( $previous_data['discount_type'], $previous_data['rule_type'], $previous_data['taxonomy_rules'] );
+					$product_chunks = array_chunk($query->posts, 10);
+					$previous_data['total_chunks'] = count($product_chunks);
+
+					return rest_ensure_response([
+						'data' => [
+							'status' => 200,
+							'discount_id' => $discount_data['id'],
+							'discount_data' => $previous_data,
+							'next' => 'remove',
+							'processed' => 0
+						],
+						'message' => __('Discount is being updated', 'woo-product-category-discount')
+					]);
+				}
+
+				return rest_ensure_response(['data' => ['status' => 200], 'message' => $params['discount_id'] !== 'new' ? __('Discount updated successfully.', 'woo-product-category-discount') : __('Discount scheduled successfully.', 'woo-product-category-discount')]);
+			} else {
+				if( !empty( $discount_data['end_date'] ) ){
+					wp_schedule_single_event(strtotime($discount_data['end_date'] . ' 23:59:59'), 'wpcd_remove_discount_setup', [$schdule_discount_data]);
+				}
+
+				$query = $this->get_products_query( $discount_data['discount_type'], $discount_data['rule_type'], $discount_data['taxonomy_rules'] );
+				$product_chunks = array_chunk($query->posts, 10);
+				$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => count( $product_chunks )], ['id' => $discount_data['id']] );
+
+				if( isset( $previous_data ) ){
+					$_previous_data = $previous_data;
+					$_discount_data = $discount_data;
+					unset( $_previous_data['total_chunks'], $_previous_data['processed_chunks'], $_previous_data['status'], $_discount_data['total_chunks'], $_discount_data['processed_chunks'], $_discount_data['status'] );
+
+					if( empty( array_diff_assoc( $_previous_data, $_discount_data ) ) ){
+						$next = 'process';
+					} else if ( $previous_data['status'] == 0 ){
+						$next = 'process';
+					} else {
+						$next = 'remove-process';
+					}
+				} else {
+					$next = 'process';
+				}
+
+				return rest_ensure_response([
+					'data' => [
+						'status' => 200,
+						'discount_id' => $discount_data['id'],
+						'discount_data' => $previous_data,
+						'next' => $next,
+						'processed' => 0
+					],
+					'message' => __('Discount is being updated', 'woo-product-category-discount')
+				]);
+			}
+		}
+
+		if( isset( $previous_data ) && ( empty( $previous_data['start_date'] ) || $previous_data['start_date'] <= date('Y-m-d') ) ){
+			if( !empty( $previous_data['end_date'] ) && $previous_data['end_date'] <= date('Y-m-d') ){
+				$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => 0], ['id' => $discount_data['id']] );
+				return rest_ensure_response(['data' => ['status' => 200], 'message' => $params['discount_id'] !== 'new' ? __('Discount updated successfully.', 'woo-product-category-discount') : __('Discount scheduled successfully.', 'woo-product-category-discount')]);
+			}
+
+			$previous_data['processed_chunks'] = 0;
+			$query = $this->get_products_query( $previous_data['discount_type'], $previous_data['rule_type'], $previous_data['taxonomy_rules'] );
+			$product_chunks = array_chunk($query->posts, 10);
+			$previous_data['total_chunks'] = count($product_chunks);
+			
+			return rest_ensure_response([
+				'data' => [
+					'status' => 200,
+					'discount_id' => $discount_data['id'],
+					'discount_data' => $previous_data,
+					'next' => $discount_data['status'] == 0 ? 'remove' : 'remove-process',
+					'processed' => 0
+				],
+				'message' => __('Discount is being updated', 'woo-product-category-discount')
+			]);
 		}
 
 		return rest_ensure_response(['data' => ['status' => 200], 'message' => $params['discount_id'] !== 'new' ? __('Discount updated successfully.', 'woo-product-category-discount') : __('Discount scheduled successfully.', 'woo-product-category-discount')]);
@@ -720,6 +871,88 @@ class WPCD_Category_Discount_Admin {
 	}
 
 	/**
+	 * Applies a scheduled discount to a set of products.
+	 *
+	 * This function takes a WP_REST_Request object and applies the discount to the products.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 *
+	 * @return WP_REST_Response The response object.
+	 * 
+	 * @since 5.8
+	 */
+	public function process_discount(WP_REST_Request $request){
+		$id = $request['discount_id'];
+
+		$data = $this->get_scheduled_discount_data( $id );
+
+		if( $data['processed_chunks'] == $data['total_chunks'] ){
+			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['processed_chunks' => 0], ['id' => $id] );
+			$data = $this->get_scheduled_discount_data( $id );
+		}
+
+		$query = $this->get_products_query( $data['discount_type'], $data['rule_type'], $data['taxonomy_rules'], $data['processed_chunks']+1, 10 );
+
+		$discount_applied = $this->apply_discount( $id, $data['discount_amount'], $data['discount_amount_type'], $query->posts );
+
+		if( $discount_applied ){
+			$processed = round( 100 * ( $data['processed_chunks'] + 1 ) / $data['total_chunks'], 2, PHP_ROUND_HALF_UP);
+			return rest_ensure_response([
+				'data' => [
+					'status' => 200,
+					'discount_id' => $data['id'],
+					'processed' => $processed
+				],
+				'message' => $processed >= 100 ? __('Discount applied successfully', 'woo-product-category-discount') : __('Discount is being updated', 'woo-product-category-discount')
+			]);
+		} else {
+			return rest_ensure_response([
+				'data' => [
+					'status' => 500,
+				],
+				'message' => __('Something went wrong', 'woo-product-category-discount')
+			]);
+		}
+	}
+
+	/**
+	 * Removes a scheduled discount from a set of products.
+	 *
+	 * This function takes a WP_REST_Request object and removes the discount from the products.
+	 *
+	 * @param WP_REST_Request $request The request object.
+	 *
+	 * @return WP_REST_Response The response object.
+	 * 
+	 * @since 5.8
+	 */
+	public function remove_discount_process(WP_REST_Request $request){
+		$data = $request['discount_data'];
+		$query = $this->get_products_query( $data['discount_type'], $data['rule_type'], $data['taxonomy_rules'], $data['processed_chunks']+1, 10 );
+
+		$discount_applied = $this->remove_discount( $data['id'], $query->posts, true );
+
+		if( $discount_applied ){
+			$processed = round( 100 * ( $data['processed_chunks'] + 1 ) / $data['total_chunks'], 2, PHP_ROUND_HALF_UP);
+			return rest_ensure_response([
+				'data' => [
+					'status' => 200,
+					'discount_id' => $data['id'],
+					'processed' => $processed
+				],
+				'message' => $processed >= 100 ? __('Discount removed successfully', 'woo-product-category-discount') : __('Discount is being removed', 'woo-product-category-discount')
+			]);
+		} else {
+			return rest_ensure_response([
+				'data' => [
+					'status' => 500,
+				],
+				'message' => __('Something went wrong', 'woo-product-category-discount')
+			]);
+		}
+	}
+
+	/**
 	 * Apply discount to products.
 	 *
 	 * This function takes a query object based on the discount type and rules,
@@ -749,6 +982,8 @@ class WPCD_Category_Discount_Admin {
 	 * @param string $discount_amount_type The type of the discount amount, either 'percentage' or 'fixed'.
 	 * @param array $product_ids The list of product ids to which the discount should be applied.
 	 * @param bool $update_processed_chunks Whether to update the processed chunks or not.
+	 * 
+	 * @return bool
 	 */
 	public function apply_discount( $discount_id, $discount_amount, $discount_amount_type, $product_ids, $update_processed_chunks=true ){
 		$custom_fields = self::custom_fields();
@@ -804,6 +1039,9 @@ class WPCD_Category_Discount_Admin {
 
 				$regular_price = $product->get_regular_price();
 				$price = $regular_price;
+				if( empty( $price ) ){
+					continue;
+				}
 
 				if( !empty( $discount_applied ) ){
 					$new_price = $discount_amount_type == 'percentage' ? ($price - ($price * $discount_amount / 100)) : ($price - $discount_amount);
@@ -837,6 +1075,8 @@ class WPCD_Category_Discount_Admin {
 		if( $update_processed_chunks){
 			$this->wpdb->query( $this->wpdb->prepare( "UPDATE {$this->wpdb->prefix}wpcd_discounts SET processed_chunks = processed_chunks + 1 WHERE id = %d", $discount_id ) );
 		}
+
+		return true;
 	}
 
 	/**
@@ -869,6 +1109,8 @@ class WPCD_Category_Discount_Admin {
 	 * @param array $product_ids The list of product ids from which the discount should be removed.
 	 * @param bool $avoid_apply_latest_discount Whether to avoid applying the latest discount to the products.
 	 * @param bool $update_processed_chunks Whether to update the processed chunks of the discount. 
+	 * 
+	 * @return bool
 	*/
 	public function remove_discount( $discount_id, $product_ids, $avoid_apply_latest_discount = false, $update_processed_chunks = true) {
 		$custom_fields = self::custom_fields();
@@ -946,26 +1188,36 @@ class WPCD_Category_Discount_Admin {
 		if( $update_processed_chunks ){
 			$this->wpdb->query( $this->wpdb->prepare( "UPDATE {$this->wpdb->prefix}wpcd_discounts SET processed_chunks = processed_chunks + 1 WHERE id = %d", $discount_id ) );
 		}
+
+		return true;
 	}
 
 	/**
-	 * Retrieves a list of products that match the given discount type and taxonomy rules.
+	 * Get a WP_Query object based on the discount type and rules.
 	 *
-	 * @param string $discount_type The type of discount to apply. Can be 'taxonomy', 'attribute', or 'all'.
-	 * @param string $match_type The type of match to apply. Can be 'all' or 'any'.
-	 * @param array $taxonomy_rules The taxonomy rules to apply. Each rule should contain the following keys:
-	 *                              - taxonomy: The taxonomy slug.
-	 *                              - operator: The operator to use. Can be 'eq', 'not in', 'in', 'exists', or 'not exists'.
-	 *                              - terms: An array of term ids or slugs.
+	 * This function takes a discount type, match type, and taxonomy rules, and returns a WP_Query object
+	 * that can be used to fetch products based on the rules.
 	 *
-	 * @return WP_Query The query object with the results.
+	 * @param string $discount_type The type of discount to apply, either 'taxonomy' or 'all'.
+	 * @param string $match_type The type of match to apply, either 'all' or 'any'.
+	 * @param array $taxonomy_rules The rules to apply for the taxonomy match.
+	 * @param int|null $page The page number to fetch, or null to fetch all products.
+	 * @param int $per_page The number of products to fetch per page, or -1 to fetch all products.
+	 *
+	 * @return WP_Query The WP_Query object based on the given parameters.
 	 */
-	private function get_products_query($discount_type, $match_type, $taxonomy_rules){	
+	private function get_products_query($discount_type, $match_type, $taxonomy_rules, $page=null, $per_page=-1){	
 		$filter = [
 			'post_type'      => 'product',
-			'posts_per_page' => -1,
-			'fields'         => 'ids'
+			'posts_per_page' => $per_page,
+			'fields'         => 'ids',
+			'orderby'        => 'ID',
+            'order'          => 'DESC'
 		];
+
+		if( !is_null( $page ) ){
+			$filter['paged'] = $page;
+		}
 
 		$rules = $taxonomy_rules ?? [];
 		if ($discount_type !== 'taxonomy' || empty($rules)) {
@@ -1083,7 +1335,7 @@ class WPCD_Category_Discount_Admin {
 	 */
 	public function hide_wpml_menu(){
 		$screen = get_current_screen();
-		if( $screen && $screen->id === 'toplevel_page_woo-product-category-discount' ){
+		if( $screen && $screen->id === 'quanticedge_page_woo-product-category-discount' ){
 			echo '<style>#wp-admin-bar-WPML_ALS { display: none !important; }</style>';
 		}
 	}
@@ -1097,7 +1349,7 @@ class WPCD_Category_Discount_Admin {
 	 * @param object $screen The WP_Screen object for the current page.
 	 */
 	public function force_wpml_language( $screen ){
-		if( $screen->id === 'toplevel_page_woo-product-category-discount' ){
+		if( $screen->id === 'quanticedge_page_woo-product-category-discount' ){
 			$default_lang = apply_filters( 'wpml_default_language', null );
         	do_action( 'wpml_switch_language', $default_lang );
 		}
@@ -1118,6 +1370,7 @@ class WPCD_Category_Discount_Admin {
 		}
 
 		if( $discount_data['status'] == 1 ){
+			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => 0], ['id' => $discount_data['id']] );
 			$schdule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
 			if( !empty( $discount_data['start_date'] ) && strtotime( $discount_data['start_date'] . ' 00:00:00' ) > time() ){
 				wp_unschedule_event( strtotime( $discount_data['start_date'] . ' 00:00:00' ), 'wpcd_apply_discount_setup', [$schdule_discount_data] );
@@ -1351,5 +1604,170 @@ class WPCD_Category_Discount_Admin {
 		$settings_link = '<a href="' . admin_url( 'admin.php?page=' . self::$menu_slug ) . '">' . __( 'Settings', 'woo-product-category-discount' ) . '</a>';
 		array_unshift( $links, $settings_link );
 		return $links;
+	}
+
+	/**
+	 * Updates the status of a discount.
+	 *
+	 * This function is called by the AJAX request to update the status of a discount.
+	 *
+	 * @since 5.8
+	 */
+	public function update_discount_status(){
+		if ( !isset( $_REQUEST['nonce'] ) || !wp_verify_nonce( sanitize_text_field(wp_unslash( $_REQUEST['nonce'] )), 'update_discount_nonce' ) ) {
+			wp_send_json_error( array( 'message' => __('Invalid request.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+    	}
+
+		if ( !current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __('Unauthorized access.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		if( !isset( $_REQUEST['discount_id'])){
+			wp_send_json_error( array( 'message' => __('Discount id is required.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		$discount_data = $this->get_scheduled_discount_data( $_REQUEST['discount_id'] );
+
+		$discount_status = wpcd_get_admin_discount_status( $discount_data );
+
+		if( $discount_status != 'active' && $discount_status != 'inactive' ){
+			wp_send_json_error( array( 'message' => __('This discount cannot be changed.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		if( $discount_status == 'active' ){
+			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', [ 'status' => 0, 'total_chunks' => 1, 'processed_chunks' => 0, 'user_id' => get_current_user_id(), 'updated_at' => date( 'Y-m-d H:i:s') ], [ 'id' => $_REQUEST['discount_id'] ] );
+			if( $discount_data['discount_type'] !== 'cart' && $discount_data['discount_type'] !== 'quantity'){
+				if( (!empty( $discount_data['end_date'] ) ) || $this->get_process_method() == 'cron' ){
+					$this->maybe_inactive_discount( $discount_data );
+				} else {
+					$query = $this->get_products_query( $discount_data['discount_type'], $discount_data['rule_type'], $discount_data['taxonomy_rules'] );
+					$product_chunks = array_chunk($query->posts, 10);
+
+					$discount_data['total_chunks'] = count( $product_chunks );
+
+					wp_send_json_success( array( 'message' => __('Discount updation started successfully.', 'woo-product-category-discount'), 'next' => 'remove', 'discount_data' => $discount_data) );
+				}
+			}
+		} else {
+			if( !empty( $discount_data['end_date'] ) && $discount_data['end_date'] < date( 'Y-m-d' ) ){
+				wp_send_json_error( array( 'message' => __('This discount cannot be activated because end date is already passed.', 'woo-product-category-discount') ), 403 );
+				wp_die();
+			}
+			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', [ 'status' => 1, 'total_chunks' => 1, 'processed_chunks' => 0, 'user_id' => get_current_user_id(), 'updated_at' => date( 'Y-m-d H:i:s' ) ], [ 'id' => $_REQUEST['discount_id'] ] );
+			if( $discount_data['discount_type'] !== 'cart' && $discount_data['discount_type'] !== 'quantity'){
+				if( !empty( $discount_data['end_date'] ) ){
+					wp_schedule_single_event(strtotime($discount_data['end_date'] . ' 23:59:59'), 'wpcd_remove_discount_setup', [$schdule_discount_data]);
+				}
+
+				if( $this->get_process_method() == 'cron' ){
+					$time = empty( $discount_data['start_date'] ) ? time() : strtotime($discount_data['start_date'] . ' 00:00:00');
+					$schdule_discount_data = $this->prepare_schedule_discount_data( $discount_data );
+					wp_schedule_single_event($time, 'wpcd_apply_discount_setup', [$schdule_discount_data]);
+				} else {
+					$query = $this->get_products_query( $discount_data['discount_type'], $discount_data['rule_type'], $discount_data['taxonomy_rules'] );
+					$product_chunks = array_chunk($query->posts, 10);
+					$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => count( $product_chunks )], ['id' => $discount_data['id']] );
+
+					wp_send_json_success( array( 'message' => __('Discount updation started successfully.', 'woo-product-category-discount'), 'next' => 'process') );
+				}
+			}
+		}
+
+		$discount_data = $this->get_scheduled_discount_data( $_REQUEST['discount_id'] );
+		wp_send_json_success( array( 'message' => __('Discount status updated successfully.', 'woo-product-category-discount'), 'html' => wpcd_get_admin_discount_status_html( $discount_data ) ) );
+ 	}
+
+	/**
+	 * Upgrades the table schema if the plugin was installed before 5.8
+	 *
+	 * This function is called on plugin activation and checks if the installed version is false.
+	 * If it is, it adds user_id and updated_at columns to the wpcd_discounts table and updates the installed version to the current version.
+	 *
+	 * @since 5.8
+	 */
+	public function maybe_upgrade_table_schema(){
+		$installed_version = get_option('wpcd_category_discount_version');
+		if ($installed_version === false) {
+			$table = $this->wpdb->prefix . 'wpcd_discounts';
+			$this->wpdb->query( "ALTER TABLE $table ADD COLUMN user_id INT DEFAULT NULL" );
+			$this->wpdb->query( "ALTER TABLE $table ADD COLUMN updated_at datetime DEFAULT NULL" );
+			update_option('wpcd_category_discount_version', WPCD_CATEGORY_DISCOUNT_VERSION);
+		} elseif (version_compare($installed_version, WPCD_CATEGORY_DISCOUNT_VERSION, '<')) {
+			update_option('wpcd_category_discount_version', WPCD_CATEGORY_DISCOUNT_VERSION);
+		}
+	}
+
+	/**
+	 * Registers the plugin's settings.
+	 *
+	 * This function is called when the plugin is initialized and registers the 'wpcd_process_method' setting.
+	 * It also adds a settings section and field to the plugin's settings page.
+	 *
+	 * @since 5.8
+	 */
+	public function register_settings(){
+		register_setting('wpcd_settings_group', 'wpcd_process_method',[
+			'type' => 'string',
+			'sanitize_callback' => 'sanitize_text_field',
+			'default' => 'ajax'
+		]);
+
+		add_settings_section(
+			'wpcd_settings_section',
+			__('General Settings', 'woo-product-category-discount'),
+			array( $this, 'settings_section_callback'),
+			'wpcd-settings'
+		);
+
+		add_settings_field(
+			'wpcd_process_method',
+			__('Process Method', 'woo-product-category-discount'),
+			array( $this, 'process_method_field_callback'),
+			'wpcd-settings',
+			'wpcd_settings_section'
+		);
+	}
+
+	/**
+	 * Includes the settings section partial.
+	 *
+	 * This function is called as a callback for the 'wpcd_settings_section' settings section
+	 * and includes the 'partials/woo-product-category-discount-settings-sections.php' partial.
+	 *
+	 * @since 5.8
+	 */
+	public function settings_section_callback(){
+		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-settings-sections.php';
+	}
+
+	/**
+	 * Includes the process method field partial.
+	 *
+	 * This function is called as a callback for the 'wpcd_process_method' settings field
+	 * and includes the 'partials/woo-product-category-discount-process-method.php' partial.
+	 *
+	 * @since 5.8
+	 */
+	public function process_method_field_callback(){
+		$value = $this->get_process_method();
+		include_once plugin_dir_path( __FILE__ ) . 'partials/woo-product-category-discount-process-method.php';
+	}
+
+	/**
+	 * Retrieves the process method setting.
+	 *
+	 * This function retrieves the 'wpcd_process_method' setting, which determines how discounts are processed in the store.
+	 * If the setting does not exist, it defaults to 'ajax'.
+	 *
+	 * @return string The process method setting.
+	 * 
+	 * @since 5.8
+	 */
+	public function get_process_method(){
+		return get_option('wpcd_process_method', 'ajax');
 	}
 }

@@ -156,7 +156,10 @@ class WPCD_Category_Discount {
 		$this->loader->add_action( 'admin_notices', $plugin_admin, 'admin_notices');
 		$this->loader->add_action( 'woocommerce_process_product_meta', $plugin_admin, 'apply_discount_price_on_product_save', 99, 2);
 		$this->loader->add_action( 'updated_postmeta', $plugin_admin, 'change_price_keys', 99, 4);
-	
+		$this->loader->add_action( 'wp_ajax_update_discount_status', $plugin_admin, 'update_discount_status', 10);
+		$this->loader->add_action( 'plugins_loaded', $plugin_admin, 'maybe_upgrade_table_schema');
+		$this->loader->add_action( 'admin_init', $plugin_admin, 'register_settings' );
+
 		$this->loader->add_action( 'admin_init', $legacy_migrate, 'migrate_data');
 		$this->loader->add_action( 'wpcd_discount_legacy_migrate', $legacy_migrate, 'set_migration_keys', 10, 2);
 		$this->loader->add_action( 'upgrader_process_complete', $legacy_migrate, 'cron_updates', 10, 2);
