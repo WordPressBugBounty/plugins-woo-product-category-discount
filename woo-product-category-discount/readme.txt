@@ -69,12 +69,14 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
+= 5.9 = 
+* Resolved the table deletion error while uninstalling.
+
 = 5.8 =
 * Added notice when cron is not active on the site.
 * Added active/deactive toggle on discount listing.
 * Shows the taxonomy details and last activity on listing page.
 * Deletion is not allowed when the discount is active.
-* Resolved the table deletion error while uninstalling.
 * Added the option to process the discount via ajax instead of crons.
 
 = 5.7 =

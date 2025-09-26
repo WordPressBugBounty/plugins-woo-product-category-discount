@@ -14,14 +14,12 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
-if( !defined( 'WPCD_REMOVE_TABLES') ){
-	exit;
+if( defined( 'WPCD_REMOVE_TABLES') ){
+	global $wpdb;
+
+	// Drop tables
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_cart_discount_rules_products" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_cart_discount_rules" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_taxonomy_discount_terms" );
+	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_discounts" );
 }
-
-global $wpdb;
-
-// Drop tables
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_cart_discount_rules_products" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_cart_discount_rules" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_taxonomy_discount_terms" );
-$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_discounts" );
