@@ -1690,6 +1690,10 @@ class WPCD_Category_Discount_Admin {
 	 * @since 5.8
 	 */
 	public function maybe_upgrade_table_schema(){
+		if( get_option('wpcd_tables_created') != 'yes' ) {
+			activate_wpcd_category_discount();
+		}
+		
 		$installed_version = get_option('wpcd_category_discount_version');
 		if ($installed_version === false) {
 			$table = $this->wpdb->prefix . 'wpcd_discounts';

@@ -33,6 +33,7 @@ Thank you for <a href="https://www.facebook.com/wooextend/reviews">LOVING this p
 
 <strong>More plugins by WooExtend:</strong>
 <ul>
+<li><strong><a href="https://wordpress.org/plugins/build-your-own-basket-for-woocommerce">Build Your Own Basket for Woocommerce</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/woo-bulk-order/">Bulk Order for Woocommerce</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/woo-combo-offers/">Woocommerce Combo Offers</a></strong></li>
 <li><strong><a href="https://wordpress.org/plugins/first-order-discount-woocommerce/">First Order Discount</a></strong></li>
@@ -69,6 +70,10 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
+
+= 5.10 =
+* Fixed the issue of adding table columns were failing for some users.
+
 = 5.9 = 
 * Resolved the table deletion error while uninstalling.
 

@@ -22,4 +22,8 @@ if( defined( 'WPCD_REMOVE_TABLES') ){
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_cart_discount_rules" );
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_taxonomy_discount_terms" );
 	$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}wpcd_discounts" );
+
+	delete_option('wpcd_category_discount_version');
+	delete_option('wpcd_tables_created');
+	delete_option('wpcd_migration_complete');
 }
