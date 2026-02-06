@@ -52,9 +52,12 @@ class WPCD_Category_Discount_Activator {
 				status TINYINT(1) NOT NULL DEFAULT 0 COMMENT '0 - disabled, 1 - enabled',
 				total_chunks INT NOT NULL DEFAULT 0,
 				processed_chunks INT NOT NULL DEFAULT 0,
+				updated_at DATETIME DEFAULT NULL,
+				user_id INT DEFAULT NULL,
 				PRIMARY KEY (id)
 			) $charset_collate;
 		";
+		update_option('wpcd_category_discount_version', WPCD_CATEGORY_DISCOUNT_VERSION);
 
 		$sql2 = "
 			CREATE TABLE IF NOT EXISTS $taxonomy_terms_table (

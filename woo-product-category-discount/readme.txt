@@ -71,6 +71,25 @@ define( 'WPCD_REMOVE_TABLES', true );
 
 == Changelog ==
 
+= 5.15 =
+* Fixed an installation query run.
+
+= 5.14 =
+* Updated activation create table query. Sometimes resulting in issue while creating new rule.
+
+= 5.13 =
+* Updated the note for discount time.
+* Added UI of discount status updates automatically when using the cron based discounts.
+* Scheduled the discount instead of processing via AJAX when scheduled discount is inactivated.
+
+= 5.12 =
+* Resolved the issue of product search not working properly in admin area for free product giweaways.
+
+= 5.11 =
+* Resolved the issue of empty screen on chrome when the translation is on.
+* Added the process termination option.
+* Resolved the issue of empty screen when plain permalink is used.
+
 = 5.10 =
 * Fixed the issue of adding table columns were failing for some users.
 

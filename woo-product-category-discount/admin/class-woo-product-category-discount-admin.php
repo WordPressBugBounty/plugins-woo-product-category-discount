@@ -68,6 +68,7 @@ class WPCD_Category_Discount_Admin {
 	 */
 	public function enqueue_scripts() {
 		if( isset( $_GET['page'], $_GET['id'] ) && $_GET['page'] == self::$menu_slug && ( $_GET['action'] == 'add' || $_GET['action'] == 'edit' ) ) {
+			wp_enqueue_script('wpcd-translation-fix', plugin_dir_url( __FILE__ ) . 'js/woo-product-category-discount-admin-translation-fix.js', array(), $this->version, 'all' );
 			wp_enqueue_script('wpcd-react-app', plugin_dir_url( __FILE__ ) . 'components/wizard/build/bundle.js', array(), $this->version, 'all' );
 			
 			$excluded_taxonomies = ['product_type', 'product_visibility', 'product_shipping_class'];
@@ -118,7 +119,7 @@ class WPCD_Category_Discount_Admin {
 					'schedule_discount' 		  	=> $_GET['id'] == 'new' ? __('Schedule Discount', 'woo-product-category-discount') : __('Update Discount', 'woo-product-category-discount'),
 					'start_date'					=> __('Start Date', 'woo-product-category-discount'),
 					'end_date'						=> __('End Date', 'woo-product-category-discount'),
-					'schedule_notice'				=> __('Note: If no schedule is set, the discount will be applied immediately.', 'woo-product-category-discount'),
+					'schedule_notice'				=> __('Note: Discounts take effect at 00:00 on the start date and end at 23:59 on the end date, based on server time. If no schedule is set, the discount will be applied immediately.', 'woo-product-category-discount'),
 					'status_label'					=> __('Status', 'woo-product-category-discount'),
 					'status_active'					=> __('Active', 'woo-product-category-discount'),
 					'status_inactive'				=> __('Inactive', 'woo-product-category-discount'),
@@ -181,6 +182,7 @@ class WPCD_Category_Discount_Admin {
 				'message' => __('You cannot edit the discount while it is being processed. Please press OK to fetch the latest status.', 'woo-product-category-discount'),
 				'ajax_url' => admin_url( 'admin-ajax.php' ),
 				'update_discount_nonce' => wp_create_nonce('update_discount_nonce'),
+				'fetch_discount_status_nonce' => wp_create_nonce('fetch_discount_status_nonce'),
 				'error' => __('There was an error. Please try again.', 'woo-product-category-discount'),
 				'loader_img' => '<img class="loader" src="' . plugin_dir_url( __FILE__ ) . 'assets/images/loader.gif" alt="processing" height="50">',
 				'check_discount_nonce' => wp_create_nonce('check_discount_nonce'),
@@ -190,6 +192,9 @@ class WPCD_Category_Discount_Admin {
 				'api_url'     => esc_url_raw(rest_url('wpcd/v1/')),
 				'active' 	  => __('(Active)', 'woo-product-category-discount'),
 				'inactive'    => __('(Inactive)', 'woo-product-category-discount'),
+				'terminate_discount_nonce' => wp_create_nonce('terminate_discount_nonce'),
+				'processing_terminate' => __('Your discount progress is being terminated. Please keep this page open while we finish.', 'woo-product-category-discount'),
+				'confirm_terminate' => __('Alert: Terminating this process will not reverse the applied or removed discount. To complete the update, please activate the discount if it was applied, or mark it inactive if it was removed. Please wait until the process is fully completed.'),
 				'processing_message' => __('Your discount is being updated. Please keep this page open while we finish.', 'woo-product-category-discount'),
 			]);
 
@@ -536,12 +541,34 @@ class WPCD_Category_Discount_Admin {
 			return new WP_Error('invalid_data', __('Invalid discount type provided', 'woo-product-category-discount'), ['status' => 400]);
 		}
 
-		if (!empty( $start_date) && !empty( $end_date ) && (strtotime($start_date) > strtotime($end_date))) {
-			return new WP_Error('invalid_dates', __('Start date must be before end date', 'woo-product-category-discount'), ['status' => 400]);
-		} else if (empty( $start_date ) && !empty( $end_date ) && strtotime($end_date) < time()) {
-			return new WP_Error('invalid_dates', __('Invalid end date', 'woo-product-category-discount'), ['status' => 400]);
-		} else if (empty( $end_date ) && !empty( $start_date ) && strtotime($start_date) < time()) {
-			return new WP_Error('invalid_dates', __('Invalid start date', 'woo-product-category-discount'), ['status' => 400]);
+		if( $status == 1 ){
+			$start_ts = !empty($start_date) ? strtotime($start_date) : null;
+			$end_ts   = !empty($end_date)   ? strtotime($end_date)   : null;
+			$now      = time();
+
+			if ($start_ts !== null && $start_ts < $now) {
+				return new WP_Error(
+					'invalid_dates',
+					__('Start date cannot be in the past. Please choose a date in the future.', 'woo-product-category-discount'),
+					['status' => 400]
+				);
+			}
+
+			if ($end_ts !== null && $end_ts < $now) {
+				return new WP_Error(
+					'invalid_dates',
+					__('End date cannot be in the past. Please choose a date in the future.', 'woo-product-category-discount'),
+					['status' => 400]
+				);
+			}
+
+			if ($start_ts !== null && $end_ts !== null && $start_ts > $end_ts) {
+				return new WP_Error(
+					'invalid_dates',
+					__('Start date must be before end date', 'woo-product-category-discount'),
+					['status' => 400]
+				);
+			}
 		}
 
 		if ($discount_type === 'taxonomy') {
@@ -773,6 +800,9 @@ class WPCD_Category_Discount_Admin {
 			if( !empty( $previous_data['end_date'] ) && $previous_data['end_date'] <= date('Y-m-d') ){
 				$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => 0], ['id' => $discount_data['id']] );
 				return rest_ensure_response(['data' => ['status' => 200], 'message' => $params['discount_id'] !== 'new' ? __('Discount updated successfully.', 'woo-product-category-discount') : __('Discount scheduled successfully.', 'woo-product-category-discount')]);
+			} else if ( !empty( $previous_data['end_date'] ) && $previous_data['end_date'] > date('Y-m-d') ) {
+				$this->maybe_inactive_discount( $previous_data );
+				return rest_ensure_response(['data' => ['status' => 200], 'message' => __('Discount updated successfully.', 'woo-product-category-discount')]);
 			}
 
 			$previous_data['processed_chunks'] = 0;
@@ -838,12 +868,11 @@ class WPCD_Category_Discount_Admin {
 		$search = sanitize_text_field($request['search']);
 
 		$args = [
-			'status' => 'publish',
 			'limit' => 50
 		];
 
 		if (!empty($search)) {
-			$args['search'] = $search;
+			$args['s'] = $search;
 		}
 
 		$found_products = wc_get_products($args);
@@ -1088,6 +1117,10 @@ class WPCD_Category_Discount_Admin {
 	 * @param array $data Contains the discount id, discount type, rule type, and taxonomy rules.
 	 */
 	public function remove_discount_setup( $data ){
+		if( empty( $data ) ){
+			return;
+		}
+		
 		$query = $this->get_products_query( $data['discount_type'], $data['rule_type'], $data['taxonomy_rules'] );
 		$product_chunks = array_chunk($query->posts, 10);
 		$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', ['total_chunks' => count( $product_chunks ), 'processed_chunks' => 0], ['id' => $data['id']] );
@@ -1212,7 +1245,8 @@ class WPCD_Category_Discount_Admin {
 			'posts_per_page' => $per_page,
 			'fields'         => 'ids',
 			'orderby'        => 'ID',
-            'order'          => 'DESC'
+            'order'          => 'DESC',
+			'post_status'    => 'any',
 		];
 
 		if( !is_null( $page ) ){
@@ -1657,6 +1691,10 @@ class WPCD_Category_Discount_Admin {
 				wp_send_json_error( array( 'message' => __('This discount cannot be activated because end date is already passed.', 'woo-product-category-discount') ), 403 );
 				wp_die();
 			}
+			if( !empty( $discount_data['start_date'] ) && $discount_data['start_date'] < date( 'Y-m-d' ) ){
+				wp_send_json_error( array( 'message' => __('This discount cannot be activated because start date is already passed.', 'woo-product-category-discount') ), 403 );
+				wp_die();
+			}
 			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', [ 'status' => 1, 'total_chunks' => 1, 'processed_chunks' => 0, 'user_id' => get_current_user_id(), 'updated_at' => date( 'Y-m-d H:i:s' ) ], [ 'id' => $_REQUEST['discount_id'] ] );
 			if( $discount_data['discount_type'] !== 'cart' && $discount_data['discount_type'] !== 'quantity'){
 				if( !empty( $discount_data['end_date'] ) ){
@@ -1680,6 +1718,46 @@ class WPCD_Category_Discount_Admin {
 		$discount_data = $this->get_scheduled_discount_data( $_REQUEST['discount_id'] );
 		wp_send_json_success( array( 'message' => __('Discount status updated successfully.', 'woo-product-category-discount'), 'html' => wpcd_get_admin_discount_status_html( $discount_data ) ) );
  	}
+
+	/**
+	 * Terminates a scheduled discount progress.
+	 *
+	 * This function is called when the user wants to terminate a scheduled discount progress.
+	 *
+	 * @since 5.11
+	 */
+	public function terminate_discount_progress() {
+		if ( !isset( $_REQUEST['nonce'] ) || !wp_verify_nonce( sanitize_text_field(wp_unslash( $_REQUEST['nonce'] )), 'terminate_discount_nonce' ) ) {
+			wp_send_json_error( array( 'message' => __('Invalid request.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+    	}
+
+		if ( !current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __('Unauthorized access.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		if( !isset( $_REQUEST['discount_id'])){
+			wp_send_json_error( array( 'message' => __('Discount id is required.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		$discount_data = $this->get_scheduled_discount_data( $_REQUEST['discount_id'] );
+
+		if( empty( $discount_data ) ){
+			wp_send_json_error( array( 'message' => __('Discount not found.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		if( empty($discount_data['end_date']) && $this->get_process_method() == 'ajax' ){
+			$this->wpdb->update( $this->wpdb->prefix . 'wpcd_discounts', [ 'status' => !$discount_data['status'] ?? 0, 'processed_chunks' => $discount_data['total_chunks'] ?? 0, 'updated_at' => date( 'Y-m-d H:i:s' ) ], [ 'id' => $_REQUEST['discount_id'] ] );
+
+			wp_send_json_success( array( 'message' => __('Discount process terminated successfully.', 'woo-product-category-discount'), 'html' => wpcd_get_admin_discount_status_html( $discount_data ) ) );
+		} else {
+			wp_send_json_error( array( 'message' => __('Discount process cannot be terminated.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+	}
 
 	/**
 	 * Upgrades the table schema if the plugin was installed before 5.8
@@ -1773,5 +1851,42 @@ class WPCD_Category_Discount_Admin {
 	 */
 	public function get_process_method(){
 		return get_option('wpcd_process_method', 'ajax');
+	}
+
+	/**
+	 * Retrieves the latest discount status.
+	 *
+	 * This function retrieves the latest discount status for each discount id passed in the request.
+	 * It will return an array of discount statuses, each corresponding to the discount id passed in the request.
+	 *
+	 * @since 5.13
+	 *
+	 * @return array The array of discount statuses, each corresponding to the discount id passed in the request.
+	 */
+	public function get_latest_discount_status(){
+		if ( !isset( $_REQUEST['nonce'] ) || !wp_verify_nonce( sanitize_text_field(wp_unslash( $_REQUEST['nonce'] )), 'fetch_discount_status_nonce' ) ) {
+			wp_send_json_error( array( 'message' => __('Invalid request.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+    	}
+
+		if ( !current_user_can( 'manage_woocommerce' ) ) {
+			wp_send_json_error( array( 'message' => __('Unauthorized access.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+
+		if( !isset( $_REQUEST['discount_ids'])){
+			wp_send_json_error( array( 'message' => __('Discount ids are required.', 'woo-product-category-discount') ), 403 );
+			wp_die();
+		}
+		
+		$discounts = wc_clean( $_REQUEST['discount_ids'] );
+		$discount_statuses = array();
+		
+		foreach( $discounts as $discount_id ){
+			$discount_data = $this->get_scheduled_discount_data( $discount_id );
+			$discount_statuses[$discount_id] = wpcd_get_admin_discount_status_html( $discount_data );
+		}
+
+		wp_send_json_success( array( 'discount_statuses' => $discount_statuses ) );
 	}
 }

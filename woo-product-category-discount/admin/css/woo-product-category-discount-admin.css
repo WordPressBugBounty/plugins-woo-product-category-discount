@@ -128,3 +128,11 @@ td .overlay {
   pointer-events: none;
   padding-top: 47px;
 }
+.terminate-progress-link {
+    color: #d63638; 
+    text-decoration: none;
+}
+
+.terminate-progress-link:hover {
+    color: #a50000;
+}

@@ -175,6 +175,9 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
         if( $is_view ){
             $view_url = admin_url('admin.php?page=woo-product-category-discount&action=view-progress&id=' . $item['id']);
             $actions['view'] = '<a href="' . esc_url($view_url) . '">' . __('View Progress', 'woo-product-category-discount') . '</a>';
+            if( empty($item['end_date']) && get_option('wpcd_process_method', 'ajax') == 'ajax' ){
+                $actions['view'] .= ' | <a data-discount-id="' . $item['id'] . '" class="terminate-progress-link" href="' . esc_url($view_url) . '">' . __('Terminate Process', 'woo-product-category-discount') . '</a>';
+            }
             $output = '<strong onclick="statusCheck(this)" style="cursor:pointer;">' . esc_html($item['name']) . '</strong>' . $this->row_actions($actions);
         } else {
             $edit_url = admin_url('admin.php?page=woo-product-category-discount&action=edit&id=' . $item['id']);

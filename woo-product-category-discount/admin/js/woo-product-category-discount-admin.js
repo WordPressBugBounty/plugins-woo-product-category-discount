@@ -10,11 +10,55 @@ function statusCheck(el) {
   }
 }
 
+jQuery(document).on("click", ".terminate-progress-link", function (e) {
+  e.preventDefault();
+  let discount_id = jQuery(this).data("discount-id");
+  let _this = jQuery(this);
+
+  if (!discount_id) {
+    alert(wpcd.error);
+    return;
+  }
+
+  if (!confirm(wpcd.confirm_terminate)) return;
+
+  jQuery.ajax({
+    url: wpcd.ajax_url,
+    type: "POST",
+    data: {
+      action: "terminate_discount_progress",
+      discount_id: jQuery(this).data("discount-id"),
+      nonce: wpcd.terminate_discount_nonce,
+    },
+    beforeSend: function () {
+      _this
+        .parents("td")
+        .append(`<span class="overlay">${wpcd.processing_message}</span>`);
+    },
+    success: function (response) {
+      if (!response.success) {
+        alert(response.data.message ?? wpcd.error);
+        jQuery(".overlay").remove();
+      } else {
+        location.reload();
+      }
+    },
+    error: function (xhr, status, error) {
+      alert(xhr.responseJSON.data.message ?? wpcd.error);
+    },
+  });
+});
+
+let processingDiscounts = new Set();
 jQuery(document).on("change", ".toggle-status", function () {
   let checkbox = jQuery(this);
   let postId = checkbox.data("id");
-  let status = checkbox.is(":checked") ? 1 : 0;
-  let _this = jQuery(this);
+
+  if (processingDiscounts.has(postId)) {
+    return;
+  }
+
+  processingDiscounts.add(postId);
 
   jQuery.ajax({
     url: wpcd.ajax_url,
@@ -25,10 +69,10 @@ jQuery(document).on("change", ".toggle-status", function () {
       nonce: wpcd.update_discount_nonce,
     },
     beforeSend: function () {
-      _this.parent().hide();
-      _this.parent().parent().append(wpcd.loader_img);
+      checkbox.parent().hide();
+      checkbox.parent().parent().append(wpcd.loader_img);
       jQuery(".toggle-status.wpcd-status").attr("disabled", "disabled");
-      _this
+      checkbox
         .parent()
         .parent()
         .find(".discount-status")
@@ -37,51 +81,57 @@ jQuery(document).on("change", ".toggle-status", function () {
     success: function (response) {
       if (!response.success) {
         alert(response.data.message ?? wpcd.error);
+        cleanup();
+        return;
+      }
+      if (response.data.html) {
+        checkbox.parent().parent().html(response.data.html);
+        cleanup();
       } else {
-        if (response.data.html) {
-          _this.parent().parent().html(response.data.html);
-          _this.parent().parent().find(".loader").remove();
-          jQuery(".toggle-status.wpcd-status").removeAttr("disabled");
-          jQuery(".overlay").remove();
-        } else {
-          if (response.data.next == "remove") {
-            removeDiscount(postId, response.data.discount_data).then(
-              (discountRemoved) => {
-                if (discountRemoved) {
-                  _this.parent().parent().find(".loader").remove();
-                  _this.parent().show();
-                  _this
-                    .parent()
-                    .parent()
-                    .find(".discount-status")
-                    .text(wpcd.inactive);
-                  jQuery(".toggle-status.wpcd-status").removeAttr("disabled");
-                  jQuery(".overlay").remove();
-                }
-              }
-            );
-          } else {
-            applyDiscount(postId).then((discountApplied) => {
-              if (discountApplied) {
-                _this.parent().parent().find(".loader").remove();
-                _this.parent().show();
-                _this
+        if (response.data.next == "remove") {
+          removeDiscount(postId, response.data.discount_data).then(
+            (discountRemoved) => {
+              if (discountRemoved) {
+                checkbox.parent().parent().find(".loader").remove();
+                checkbox.parent().show();
+                checkbox
                   .parent()
                   .parent()
                   .find(".discount-status")
-                  .text(wpcd.active);
-                jQuery(".toggle-status.wpcd-status").removeAttr("disabled");
-                jQuery(".overlay").remove();
+                  .text(wpcd.inactive);
               }
-            });
-          }
+              cleanup();
+            }
+          );
+        } else {
+          applyDiscount(postId).then((discountApplied) => {
+            if (discountApplied) {
+              checkbox.parent().parent().find(".loader").remove();
+              checkbox.parent().show();
+              checkbox
+                .parent()
+                .parent()
+                .find(".discount-status")
+                .text(wpcd.active);
+            }
+            cleanup();
+          });
         }
       }
     },
     error: function (xhr, status, error) {
       alert(xhr.responseJSON.data.message ?? wpcd.error);
+      cleanup();
     },
   });
+
+  function cleanup() {
+    jQuery(".toggle-status.wpcd-status").removeAttr("disabled");
+    jQuery(".overlay").remove();
+    checkbox.parent().show();
+    checkbox.parent().parent().find(".loader").remove();
+    processingDiscounts.delete(postId);
+  }
 });
 
 function removeDiscount(discountId, discountData, processedChunks = 0) {
@@ -153,4 +203,54 @@ jQuery(function ($) {
       $(this).text() === wpcd.view_more ? wpcd.view_less : wpcd.view_more
     );
   });
+
+  let visibleDiscount = [];
+  $(".wpcd-status").each(function () {
+    visibleDiscount.push($(this).data("id"));
+  });
+
+  let latestDiscountUpdateId = 0;
+  setInterval(function () {
+    let statusForDiscount = [];
+    for (let i = 0; i < visibleDiscount.length; i++) {
+      if (!processingDiscounts.has(visibleDiscount[i])) {
+        statusForDiscount.push(visibleDiscount[i]);
+      }
+    }
+
+    if (statusForDiscount.length > 0) {
+      const requestId = Date.now();
+      latestDiscountUpdateId = requestId;
+
+      jQuery.ajax({
+        url: wpcd.ajax_url,
+        type: "POST",
+        data: {
+          action: "get_latest_discount_status",
+          discount_ids: statusForDiscount,
+          nonce: wpcd.fetch_discount_status_nonce,
+        },
+        dataType: "json",
+        success: function (response) {
+          if (response.success) {
+            if (requestId !== latestDiscountUpdateId) {
+              return;
+            }
+
+            let statuses = response.data.discount_statuses;
+            Object.keys(statuses).forEach((id) => {
+              const $el = $(`#toggle-status-${id}`);
+              const $parent = $el.parent();
+
+              const $target = $parent.hasClass("wp-list-toggle")
+                ? $parent.parent()
+                : $parent;
+
+              $target.html(statuses[id]);
+            });
+          }
+        },
+      });
+    }
+  }, 10000);
 });
