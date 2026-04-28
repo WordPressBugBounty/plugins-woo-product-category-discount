@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Discount Rules for Woocommerce
  * Plugin URI:        https://www.quanticedgesolutions.com
  * Description:       Easily create advanced discount rules for your WooCommerce store! Set up discounts based on categories, tags, cart value, or product quantity—with full scheduling, smart product matching, and smooth processing that works great even on large stores. Discounts apply in real time, with progress updates shown to the user.
- * Version:           5.15
+ * Version:           5.16
  * Author:            QuanticEdge
  * Author URI:        https://www.quanticedgesolutions.com/
  * License:           GPL-2.0+
@@ -23,7 +23,7 @@ if ( ! defined( 'WPINC' ) ) {
  * Start at version 5.0 and use SemVer - https://semver.org
  * Rename this for your plugin and update it as you release new versions.
  */
-define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.15' );
+define( 'WPCD_CATEGORY_DISCOUNT_VERSION', '5.16' );
 
 /**
  * Defines the path of base name of plugin.
@@ -199,5 +199,83 @@ if( !function_exists( 'wpcd_get_admin_discount_status_html') ){
 		}
 
 		return '<span class="wpcd-status dashicons dashicons-calendar" data-id="' . $discount_data['id'] . '" id="toggle-status-' . $discount_data['id'] . '" style="margin-left: 8%;"></span><label for="status">(' . __('Scheduled', 'woo-product-category-discount') . ')</label>';
+	}
+}
+
+if( !function_exists( 'wpcd_maybe_upgrade_table_schema' ) ){
+	/**
+	 * Upgrades the table schema if the plugin was installed before 5.8
+	 *
+	 * This function is called when the layout is build.
+	 *
+	 * @since 5.16
+	 */
+	function wpcd_maybe_upgrade_table_schema() {
+		global $wpdb;
+
+		static $ran = false;
+
+		if ($ran) {
+			return;
+		}
+		$ran = true;
+
+		$table = $wpdb->prefix . 'wpcd_discounts';
+		$cache_group = 'wpcd';
+		$cache_key   = 'schema_checked';
+
+		if (wp_cache_get($cache_key, $cache_group)) {
+			return;
+		}
+
+		$is_admin = is_admin();
+
+		$show_admin_error = function($message) use ($is_admin) {
+			if (!$is_admin || !current_user_can('manage_options')) {
+				return;
+			}
+
+			add_action('admin_notices', function() use ($message) {
+				echo '<div class="notice notice-error"><p><strong>WPCD:</strong> ' . esc_html($message) . '</p></div>';
+			});
+		};
+
+		$columns = $wpdb->get_col("DESC $table");
+
+		if (empty($columns)) {
+			$show_admin_error("Could not read table structure for {$table}");
+			return;
+		}
+
+		$has_user_id    = in_array('user_id', $columns, true);
+		$has_updated_at = in_array('updated_at', $columns, true);
+
+		$success = true;
+
+		if (!$has_user_id) {
+			$result = $wpdb->query("ALTER TABLE $table ADD COLUMN user_id INT DEFAULT NULL");
+			if ($result === false) {
+				$success = false;
+				$show_admin_error("Failed adding user_id: " . $wpdb->last_error);
+			}
+		}
+
+		if (!$has_updated_at) {
+			$result = $wpdb->query("ALTER TABLE $table ADD COLUMN updated_at DATETIME DEFAULT NULL");
+			if ($result === false) {
+				$success = false;
+				$show_admin_error("Failed adding updated_at: " . $wpdb->last_error);
+			}
+		}
+
+		if ($success) {
+			$columns = $wpdb->get_col("DESC $table");
+
+			if (in_array('user_id', $columns, true) && in_array('updated_at', $columns, true)) {
+				wp_cache_set($cache_key, true, $cache_group);
+			} else {
+				$show_admin_error("Schema update incomplete.");
+			}
+		}
 	}
 }

@@ -71,6 +71,11 @@ define( 'WPCD_REMOVE_TABLES', true );
 
 == Changelog ==
 
+= 5.16 =
+* Fixed an alter table query fail.
+* Resolved discount percentage going out of bound
+* Resolved the error of frontend when no cart based discount active.
+
 = 5.15 =
 * Fixed an installation query run.
 

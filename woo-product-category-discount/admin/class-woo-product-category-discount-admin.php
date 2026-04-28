@@ -925,7 +925,7 @@ class WPCD_Category_Discount_Admin {
 		$discount_applied = $this->apply_discount( $id, $data['discount_amount'], $data['discount_amount_type'], $query->posts );
 
 		if( $discount_applied ){
-			$processed = round( 100 * ( $data['processed_chunks'] + 1 ) / $data['total_chunks'], 2, PHP_ROUND_HALF_UP);
+			$processed = min( round( 100 * ( $data['processed_chunks'] + 1 ) / $data['total_chunks'], 2, PHP_ROUND_HALF_UP), 100);
 			return rest_ensure_response([
 				'data' => [
 					'status' => 200,
@@ -1756,30 +1756,6 @@ class WPCD_Category_Discount_Admin {
 		} else {
 			wp_send_json_error( array( 'message' => __('Discount process cannot be terminated.', 'woo-product-category-discount') ), 403 );
 			wp_die();
-		}
-	}
-
-	/**
-	 * Upgrades the table schema if the plugin was installed before 5.8
-	 *
-	 * This function is called on plugin activation and checks if the installed version is false.
-	 * If it is, it adds user_id and updated_at columns to the wpcd_discounts table and updates the installed version to the current version.
-	 *
-	 * @since 5.8
-	 */
-	public function maybe_upgrade_table_schema(){
-		if( get_option('wpcd_tables_created') != 'yes' ) {
-			activate_wpcd_category_discount();
-		}
-		
-		$installed_version = get_option('wpcd_category_discount_version');
-		if ($installed_version === false) {
-			$table = $this->wpdb->prefix . 'wpcd_discounts';
-			$this->wpdb->query( "ALTER TABLE $table ADD COLUMN user_id INT DEFAULT NULL" );
-			$this->wpdb->query( "ALTER TABLE $table ADD COLUMN updated_at datetime DEFAULT NULL" );
-			update_option('wpcd_category_discount_version', WPCD_CATEGORY_DISCOUNT_VERSION);
-		} elseif (version_compare($installed_version, WPCD_CATEGORY_DISCOUNT_VERSION, '<')) {
-			update_option('wpcd_category_discount_version', WPCD_CATEGORY_DISCOUNT_VERSION);
 		}
 	}
 

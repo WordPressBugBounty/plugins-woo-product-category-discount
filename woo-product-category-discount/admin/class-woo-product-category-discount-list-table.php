@@ -43,7 +43,7 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
      */
     public function prepare_items() {
         global $wpdb;
-
+        wpcd_maybe_upgrade_table_schema();
         $table = $wpdb->prefix . 'wpcd_discounts';
         $cart_rule_table = $wpdb->prefix . 'wpcd_cart_discount_rules';
 

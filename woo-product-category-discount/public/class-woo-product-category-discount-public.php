@@ -209,6 +209,8 @@ class WPCD_Category_Discount_Public {
 	public function add_free_products_to_cart(){
 		if ( is_admin() && !defined('DOING_AJAX') ) return;
 
+		if ( ! WC()->session ) return;
+		
 		if ( WC()->session->get('should_add_free_items') ) {
 			WC()->session->set('should_add_free_items', false);
 			$this->auto_add_free_discount_products();
