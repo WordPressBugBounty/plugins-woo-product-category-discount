@@ -29,13 +29,13 @@
   transition: 0.4s;
   border-radius: 50%;
 }
-.wp-list-toggle input:checked + .slider {
+.wp-list-toggle input:checked+.slider {
   background-color: #4caf50;
 }
-.wp-list-toggle input:checked + .slider:before {
+.wp-list-toggle input:checked+.slider:before {
   transform: translateX(20px);
 }
-.wp-list-toggle input:disabled + .slider {
+.wp-list-toggle input:disabled+.slider {
   background-color: #e1e1e1de;
   pointer-events: none;
 }
@@ -65,14 +65,12 @@
 .taxonomy-data:last-child {
   margin-bottom: 0;
 }
-
 .tax-name {
   font-weight: bold;
   color: #555;
   min-width: 80px;
   display: inline-block;
 }
-
 .tax-terms {
   display: flex;
   flex-wrap: wrap;
@@ -87,7 +85,6 @@
   border: 1px solid #d0d7e5;
   transition: all 0.2s ease-in-out;
 }
-
 .tax-term:hover {
   background: #d0e0f7;
   color: #1d3557;
@@ -129,10 +126,22 @@ td .overlay {
   padding-top: 47px;
 }
 .terminate-progress-link {
-    color: #d63638; 
-    text-decoration: none;
+  color: #d63638;
+  text-decoration: none;
 }
-
 .terminate-progress-link:hover {
-    color: #a50000;
+  color: #a50000;
+}
+.MuiFormControl-root label {
+  background: #fff;
+  padding: 0 2px;
+}
+.MuiFormControl-root input {
+  border: 1px solid #fefefe !important;
+  height: 1.4375em !important;
+  padding: 12.5px 14px;
+}
+.controls-parent {
+  display: flex;
+  gap: 17px;
 }

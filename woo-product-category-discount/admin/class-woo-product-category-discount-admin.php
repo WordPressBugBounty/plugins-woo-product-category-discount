@@ -95,7 +95,10 @@ class WPCD_Category_Discount_Admin {
 				'taxonomies'  => $taxonomy_list,
 				'i18n'        => [
 					'discount_type' 				=> __('Discount Type','woo-product-category-discount'), 
-					'schedule' 						=> __('Schedule','woo-product-category-discount'), 
+					'schedule' 						=> __('Schedule','woo-product-category-discount'),
+					'badge'							=> __('Badge', 'woo-product-category-discount'),
+					'badge_active'					=> $this->check_badge_addon_active(),
+					'woocommerce_placeholder' 		=> wc_placeholder_img_src(),
 					'confirmation'  				=> __('Confirmation','woo-product-category-discount'),
 					'finish'      					=> __('Finish', 'woo-product-category-discount'),	
 					'next'     						=> __('Next', 'woo-product-category-discount'),
@@ -198,7 +201,7 @@ class WPCD_Category_Discount_Admin {
 				'processing_message' => __('Your discount is being updated. Please keep this page open while we finish.', 'woo-product-category-discount'),
 			]);
 
-			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/woo-product-category-discount-admin.css', array(), $this->version);
+			wp_enqueue_style( $this->plugin_name, plugin_dir_url( __FILE__ ) . 'css/woo-product-category-discount-admin.css', array(), $this->version );
 		}
 	}
 
@@ -513,6 +516,8 @@ class WPCD_Category_Discount_Admin {
 	public function schedule_discount(WP_REST_Request $request) {
 		$params = $request->get_json_params();
 
+		do_action( 'wpcd_validate_badge_settings', $params );
+
 		$discount_id = $params['discount_id'] ?? '';
 		if( $discount_id == 'new' ){
 			$discount_id = null;
@@ -544,9 +549,9 @@ class WPCD_Category_Discount_Admin {
 		if( $status == 1 ){
 			$start_ts = !empty($start_date) ? strtotime($start_date) : null;
 			$end_ts   = !empty($end_date)   ? strtotime($end_date)   : null;
-			$now      = time();
+			$today 	  = strtotime('today');
 
-			if ($start_ts !== null && $start_ts < $now) {
+			if ($start_ts !== null && $start_ts < $today) {
 				return new WP_Error(
 					'invalid_dates',
 					__('Start date cannot be in the past. Please choose a date in the future.', 'woo-product-category-discount'),
@@ -554,7 +559,7 @@ class WPCD_Category_Discount_Admin {
 				);
 			}
 
-			if ($end_ts !== null && $end_ts < $now) {
+			if ($end_ts !== null && $end_ts < $today) {
 				return new WP_Error(
 					'invalid_dates',
 					__('End date cannot be in the past. Please choose a date in the future.', 'woo-product-category-discount'),
@@ -668,6 +673,8 @@ class WPCD_Category_Discount_Admin {
 
 			$discount_id = $this->wpdb->insert_id;
 		}
+
+		do_action( 'wpcd_save_badge_settings', $params, $discount_id );
 
 		if( $discount_type == 'taxonomy' || $discount_type == 'quantity' ){
 			foreach( $rules as $rule ){
@@ -1359,6 +1366,8 @@ class WPCD_Category_Discount_Admin {
 			}
 		}
 
+		$discount_data = apply_filters( 'wpcd_modify_discount_data', $discount_data, $discount_id );
+
 		return $discount_data;
 	}
 
@@ -1864,5 +1873,32 @@ class WPCD_Category_Discount_Admin {
 		}
 
 		wp_send_json_success( array( 'discount_statuses' => $discount_statuses ) );
+	}
+
+	/**
+	 * Checking if the premium badge addon is active
+	 *
+	 * @return bool
+	 */
+	public function check_badge_addon_active() {
+
+		include_once( ABSPATH . 'wp-admin/includes/plugin.php' );
+
+    	$plugin_active = is_plugin_active( 'woo-product-category-discount-badge/category-discount-badge.php' );
+		if( !$plugin_active ) {
+			return false;
+		}
+
+		$license_activated = false;
+		if( class_exists( 'Category_Discount_Badge_License' ) ) {
+			$license_obj = new Category_Discount_Badge_License();
+			$license_activated = $license_obj->is_license_active();
+		}
+
+		if( $plugin_active && $license_activated ) {
+			return true;
+		}
+		
+		return false;
 	}
 }
