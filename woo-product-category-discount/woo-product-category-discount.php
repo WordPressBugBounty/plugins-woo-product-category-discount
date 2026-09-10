@@ -3,7 +3,7 @@
  * Plugin Name:       Simple Discount Rules for Woocommerce
  * Plugin URI:        https://www.quanticedgesolutions.com
  * Description:       Easily create advanced discount rules for your WooCommerce store! Set up discounts based on categories, tags, cart value, or product quantity—with full scheduling, smart product matching, and smooth processing that works great even on large stores. Discounts apply in real time, with progress updates shown to the user.
- * Version:           5.17
+ * Version:           5.18
  * Author:            QuanticEdge
  * Author URI:        https://www.quanticedgesolutions.com/
  * License:           GPL-2.0+
