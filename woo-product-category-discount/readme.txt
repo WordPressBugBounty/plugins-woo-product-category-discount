@@ -2,7 +2,7 @@
 Contributors: vidishp, quanticedge
 Tags: discount rules, category discount, discount, woocommerce discount, bulk discount
 Requires at least: 3.0.1
-Tested up to: 7.1
+Tested up to: 7.0
 Stable tag: trunk
 Donate link: https://ko-fi.com/vidish
 License: GPLv2 or later
@@ -70,6 +70,9 @@ define( 'WPCD_REMOVE_TABLES', true );
 5. When discount is applied, the wait icon turn into success notification icon.
 
 == Changelog ==
+
+= 5.19 =
+Fixed a potential SQL injection vulnerability in the discount list table's 'orderby' parameter.
 
 = 5.18 =
 * Fixed to allow Discount schedules to be set to today’s date.

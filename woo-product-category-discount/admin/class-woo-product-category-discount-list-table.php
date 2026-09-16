@@ -51,8 +51,14 @@ class WPCD_Discount_List_Table extends WPCD_List_Table {
         $current_page = $this->get_pagenum();
         $offset = ($current_page - 1) * $per_page;
 
-        $orderby = isset($_REQUEST['orderby']) ? esc_sql($_REQUEST['orderby']) : 'id';
-        $order = isset($_REQUEST['order']) && $_REQUEST['order'] === 'asc' ? 'ASC' : 'DESC';
+        $allowed_orderby = array(
+            'id'   => 'd.id',
+            'name' => 'd.name',
+        );
+
+        $orderby_key = isset($_REQUEST['orderby']) ? sanitize_key($_REQUEST['orderby']) : 'id';
+        $orderby = isset($allowed_orderby[ $orderby_key ]) ? $allowed_orderby[ $orderby_key ] : 'd.id';
+        $order = isset($_REQUEST['order']) && strtolower($_REQUEST['order']) === 'asc' ? 'ASC': 'DESC';
 
         $search = '';
         if (!empty($_REQUEST['s'])) {
