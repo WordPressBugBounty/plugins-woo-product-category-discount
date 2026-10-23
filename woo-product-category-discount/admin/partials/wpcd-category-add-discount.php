@@ -1,1 +1,0 @@
-<div id="wpcd-react-root"></div>

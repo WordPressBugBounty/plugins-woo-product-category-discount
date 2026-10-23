@@ -1,1 +1,0 @@
-<div id="discount-progress-root"></div>
